@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
@@ -34,6 +35,9 @@ func (r *UserRepository) GetByID(id uint) (*model.User, error) {
 func (r *UserRepository) GetByTelegramID(telegramID int64) (*model.User, error) {
 	var user model.User
 	err := r.db.Where("telegram_id = ?", telegramID).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
