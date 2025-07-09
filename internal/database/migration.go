@@ -1,7 +1,7 @@
-package internal
+package database
 
 import (
-	"github.com/RomanGhost/buratino_bot.git/internal/repository/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
 	"gorm.io/gorm"
 )
 
