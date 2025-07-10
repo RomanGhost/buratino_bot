@@ -12,6 +12,7 @@ type Key struct {
 	UserID       uint      `gorm:"index" json:"user_id"`
 	ServerID     uint      `gorm:"index" json:"server_id"`
 	DeadlineTime time.Time `json:"deadline_time"`
+	ConnectUrl   string    `json:"connect_url"`
 	IsActive     bool      `gorm:"default:true" json:"is_active"`
 
 	// Associations

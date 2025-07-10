@@ -42,26 +42,6 @@ func (r *ServerRepository) GetAll(offset, limit int) ([]model.Server, error) {
 	return servers, err
 }
 
-// GetByIPv4 gets server by IPv4 address
-func (r *ServerRepository) GetByIPv4(ipv4 string) (*model.Server, error) {
-	var server model.Server
-	err := r.db.Where("ipv4 = ?", ipv4).First(&server).Error
-	if err != nil {
-		return nil, err
-	}
-	return &server, nil
-}
-
-// GetByIPv6 gets server by IPv6 address
-func (r *ServerRepository) GetByIPv6(ipv6 string) (*model.Server, error) {
-	var server model.Server
-	err := r.db.Where("ipv6 = ?", ipv6).First(&server).Error
-	if err != nil {
-		return nil, err
-	}
-	return &server, nil
-}
-
 // Update updates server
 func (r *ServerRepository) Update(server *model.Server) error {
 	return r.db.Save(server).Error

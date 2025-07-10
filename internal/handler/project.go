@@ -6,16 +6,24 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/go-telegram/ui/keyboard/inline"
 )
 
-func InfoAboutInline(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
-	inlineKeyboard := inline.New(b, inline.WithPrefix("key")).
-		Row().
-		Button("Создать ключ", []byte("create_key"), CreateKeyInline)
+func InfoAboutInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Создать ключ", CallbackData: "create_key"},
+			},
+		},
+	}
 
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: mes.Message.Chat.ID,
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: `📜 *Сказ о волшебных ключах* 🗝️
 В этой сказочной обители ты встретил *Буратино* \- не просто деревянного мальчишку, а стража потайных троп интернета\! 🌐✨
 Он дарует *волшебные VPN\-ключи*, что действуют недолго \- всего около *30 минут*, но дают силу обойти коварных Карабасов и Брандмейстеров\.

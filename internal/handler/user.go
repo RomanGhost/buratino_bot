@@ -8,7 +8,6 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/go-telegram/ui/keyboard/inline"
 )
 
 type UserHandler struct {
@@ -20,17 +19,21 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *models.Update) {
-	telegramUser := update.Message.Chat
+	telegramUser := update.Message.From
 	log.Printf("[INFO] Registe user: %v, ID: %v", telegramUser.Username, telegramUser.ID)
 	if err := h.userService.AddNewUser(telegramUser.ID); err != nil {
 		log.Printf("[WARN] user register error: %v", err)
 	}
 
-	inlineKeyboard := inline.New(b, inline.WithPrefix("start")).
-		Row().
-		Button("Создать ключ", []byte("create_key"), CreateKeyInline).
-		Row().
-		Button("Узнать о проекте", []byte("Info_project"), InfoAboutInline)
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Создать ключ", CallbackData: "create_key"},
+			}, {
+				{Text: "Узнать о проекте", CallbackData: "info_project"},
+			},
+		},
+	}
 
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,

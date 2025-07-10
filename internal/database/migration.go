@@ -44,6 +44,15 @@ func SeedData(db *gorm.DB) error {
 		}
 	}
 
+	server := model.Server{
+		Region: regions[0].RegionName,
+		Access: "https://77.233.215.100:3411/g2G6SIZWzAPcXeFVjO_78A",
+	}
+
+	if err := db.FirstOrCreate(&server, server).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 

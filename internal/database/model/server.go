@@ -8,8 +8,7 @@ import (
 type Server struct {
 	gorm.Model
 	Region string `gorm:"size:128;index" json:"region"`
-	IPv4   string `gorm:"type:cidr" json:"ipv4"`
-	IPv6   string `gorm:"type:cidr" json:"ipv6"`
+	Access string `gorm:"size:512,type:char" json:"acess"`
 
 	// Associations
 	RegionInfo Region `gorm:"foreignKey:Region;references:RegionName" json:"region_info,omitempty"`
