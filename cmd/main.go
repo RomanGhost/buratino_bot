@@ -8,7 +8,7 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler"
+	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
@@ -41,11 +41,10 @@ func main() {
 	serverRepository := repository.NewServerRepository(db)
 
 	keyService := service.NewKeyService(keyRepository, userRepository, serverRepository)
-
-	keyHandler := handler.NewKeyHandler(outlineClient, keyService)
-
 	userService := service.NewUserService(userRepository, userRoleRepository)
-	userHandler := handler.NewUserHandler(userService)
+
+	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService)
+	userHandler := handlerBot.NewUserHandler(userService)
 
 	// initialize bot
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -53,7 +52,7 @@ func main() {
 
 	opts := []bot.Option{
 		bot.WithCallbackQueryDataHandler("create_key", bot.MatchTypeExact, keyHandler.CreateKeyInline),
-		bot.WithCallbackQueryDataHandler("info_project", bot.MatchTypeExact, handler.InfoAboutInline),
+		bot.WithCallbackQueryDataHandler("info_project", bot.MatchTypeExact, handlerBot.InfoAboutInline),
 	}
 
 	b, err := bot.New("7786090535:AAGg1aj6SkJwc6mURapwQ7AYf4hmRo-ynAE", opts...)

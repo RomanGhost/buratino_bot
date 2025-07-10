@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/go-telegram/bot v1.15.0
-	github.com/go-telegram/ui v0.5.1
+	
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
 )
