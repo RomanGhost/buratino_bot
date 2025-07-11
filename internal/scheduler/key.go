@@ -16,8 +16,8 @@ type KeyScheduler struct {
 	keyRepository *repository.KeyRepository
 }
 
-func NewScheduler(keyRepository *repository.KeyRepository, intervalSeconds time.Duration, b *bot.Bot, ctx context.Context) {
-
+func NewScheduler(keyRepository *repository.KeyRepository, intervalSeconds time.Duration, b *bot.Bot, ctx context.Context) *KeyScheduler {
+	return &KeyScheduler{}
 }
 
 func (s *KeyScheduler) Run() {
