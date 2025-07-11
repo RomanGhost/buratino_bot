@@ -82,12 +82,14 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	data := update.CallbackQuery.Data
 	shortRegionName := strings.Split(data, "_")[1]
 
+	// get servers by region
 	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
 	if err != nil || len(servers) == 0 {
 		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
+	// chose server with min keys of region
 	minCount := math.MaxInt
 	var minServer model.Server
 	for _, server := range servers {
@@ -112,6 +114,7 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint) {
 	telegramUser := update.CallbackQuery.From
 
+	// generate new keys with name
 	key, err := h.outline.CreateAccessKey()
 	if err != nil {
 		log.Printf("[WARN] create outline key: %v\n", err)
@@ -122,7 +125,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	key.Name = fmt.Sprintf("%v_%v", telegramUser.ID, time.Now().UTC().Unix())
 	err = h.outline.RenameAccessKey(key.ID, key.Name)
 	if err != nil {
-		log.Printf("[WARN] rename outline key: %v\n", err)
+		log.Printf("[WARN] Can't rename outline key: %v\n", err)
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
@@ -131,10 +134,11 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	_, err = h.keyService.CreateKey(telegramUser.ID, serverID, connectionKey)
 	if err != nil {
-		log.Printf("[WARN] write key in db: %v\n", err)
+		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
 	}
 
+	// notify users
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
@@ -147,6 +151,10 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
 	}
+
+}
+
+func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64) {
 
 }
 
