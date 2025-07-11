@@ -28,9 +28,9 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: "create_key"},
+				{Text: "Создать ключ", CallbackData: "createKey"},
 			}, {
-				{Text: "Узнать о проекте", CallbackData: "info_project"},
+				{Text: "Узнать о проекте", CallbackData: "infoProject"},
 			},
 		},
 	}

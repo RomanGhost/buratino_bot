@@ -17,7 +17,7 @@ func InfoAboutInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: "create_key"},
+				{Text: "Создать ключ", CallbackData: "createKey"},
 			},
 		},
 	}

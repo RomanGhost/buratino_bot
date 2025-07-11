@@ -7,7 +7,7 @@ import (
 // Server represents servers table
 type Server struct {
 	gorm.Model
-	Region string `gorm:"size:128;index" json:"region"`
+	Region string `gorm:"size:5;index" json:"region"`
 	Access string `gorm:"size:512,type:char" json:"acess"`
 
 	// Associations

@@ -39,11 +39,13 @@ func main() {
 	userRepository := repository.NewUserRepository(db)
 	userRoleRepository := repository.NewUserRoleRepository(db)
 	serverRepository := repository.NewServerRepository(db)
+	regionRepository := repository.NewRegionRepository(db)
 
 	keyService := service.NewKeyService(keyRepository, userRepository, serverRepository)
 	userService := service.NewUserService(userRepository, userRoleRepository)
+	regionService := service.NewRegionService(regionRepository)
 
-	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService)
+	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, regionService)
 	userHandler := handlerBot.NewUserHandler(userService)
 
 	// initialize bot
@@ -51,8 +53,10 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
-		bot.WithCallbackQueryDataHandler("create_key", bot.MatchTypeExact, keyHandler.CreateKeyInline),
-		bot.WithCallbackQueryDataHandler("info_project", bot.MatchTypeExact, handlerBot.InfoAboutInline),
+		// choosenRegion_
+		bot.WithCallbackQueryDataHandler("choosenRegion_", bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler("createKey", bot.MatchTypeExact, keyHandler.CreateKeyGetRegionInline),
+		bot.WithCallbackQueryDataHandler("infoProject", bot.MatchTypeExact, handlerBot.InfoAboutInline),
 	}
 
 	b, err := bot.New("7786090535:AAGg1aj6SkJwc6mURapwQ7AYf4hmRo-ynAE", opts...)

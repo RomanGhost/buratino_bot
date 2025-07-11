@@ -29,9 +29,9 @@ func (r *ServerRepository) GetByID(id uint) (*model.Server, error) {
 }
 
 // GetByRegion gets servers by region
-func (r *ServerRepository) GetByRegion(region string) ([]model.Server, error) {
+func (r *ServerRepository) GetByRegion(regionName string) ([]model.Server, error) {
 	var servers []model.Server
-	err := r.db.Where("region = ?", region).Find(&servers).Error
+	err := r.db.Where("region = ?", regionName).Find(&servers).Error
 	return servers, err
 }
 

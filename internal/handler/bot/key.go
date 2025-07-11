@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
@@ -13,19 +15,79 @@ import (
 )
 
 type KeyHandler struct {
-	outline    *outline.OutlineClient
-	keyService *service.KeyService
+	outline       *outline.OutlineClient
+	keyService    *service.KeyService
+	regionService *service.RegionService
+	serverService *service.ServerService
 }
 
-func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyService) *KeyHandler {
-	return &KeyHandler{outline: outline, keyService: keyService}
+func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyService, regionService *service.RegionService, serverService *service.ServerService) *KeyHandler {
+	return &KeyHandler{
+		outline:       outline,
+		keyService:    keyService,
+		regionService: regionService,
+		serverService: serverService,
+	}
+}
+
+// function for get region of server
+func (h *KeyHandler) CreateKeyGetRegionInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+
+	regions, err := h.regionService.GetRegionsWithServers()
+	if err != nil {
+		regionsError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	// regions into buttons
+	inlineButtons := [][]models.InlineKeyboardButton{}
+	line := []models.InlineKeyboardButton{}
+	for i, region := range regions {
+		button := models.InlineKeyboardButton{Text: region.RegionName, CallbackData: fmt.Sprintf("choosenRegion_%v", region.ShortName)}
+		line = append(line, button)
+
+		if (i+1)%3 == 0 {
+			inlineButtons = append(inlineButtons, line)
+			line = line[0:0]
+		}
+	}
+	if len(line) > 0 {
+		inlineButtons = append(inlineButtons, line)
+	}
+
+	// send message
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: inlineButtons,
+	}
+	messageText := `Выбери регион, из которого нужно принести ключик`
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+		Text:        messageText,
+		ReplyMarkup: inlineKeyboard,
+		ParseMode:   "MarkdownV2",
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send region message %v", err)
+	}
+}
+
+func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+
+	// get data from inline
+	data := update.CallbackQuery.Data
+	shortRegionName := strings.Split(data, "_")[1]
+
+	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
+	if err != nil {
+
+	}
 }
 
 func (h *KeyHandler) CreateKeyInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-		ShowAlert:       false,
-	})
+	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
 
 	key, err := h.outline.CreateAccessKey()
 	if err != nil {
@@ -80,6 +142,17 @@ func CreateKeyInlineShutdown(ctx context.Context, b *bot.Bot, mes models.MaybeIn
 
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
+	}
+}
+
+func regionsError(ctx context.Context, b *bot.Bot, chatId int64) {
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    chatId,
+		Text:      `Возникли проблемы с полученим регионов, уже чиним\!`,
+		ParseMode: models.ParseModeMarkdown,
+	})
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
 	}
 }
 
