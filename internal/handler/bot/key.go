@@ -46,6 +46,9 @@ func (h *KeyHandler) CreateKeyGetRegionInline(ctx context.Context, b *bot.Bot, u
 	inlineButtons := [][]models.InlineKeyboardButton{}
 	line := []models.InlineKeyboardButton{}
 	for i, region := range regions {
+		if len(region.Servers) == 0 {
+			continue
+		}
 		button := models.InlineKeyboardButton{Text: region.RegionName, CallbackData: fmt.Sprintf("choosenRegion_%v", region.ShortName)}
 		line = append(line, button)
 
@@ -54,6 +57,7 @@ func (h *KeyHandler) CreateKeyGetRegionInline(ctx context.Context, b *bot.Bot, u
 			line = line[0:0]
 		}
 	}
+
 	if len(line) > 0 {
 		inlineButtons = append(inlineButtons, line)
 	}

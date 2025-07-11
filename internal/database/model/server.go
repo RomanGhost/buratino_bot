@@ -11,6 +11,6 @@ type Server struct {
 	Access string `gorm:"size:512,type:char" json:"acess"`
 
 	// Associations
-	RegionInfo Region `gorm:"foreignKey:Region;references:RegionName" json:"region_info,omitempty"`
+	RegionInfo Region `gorm:"foreignKey:Region;references:ShortName" json:"region_info,omitempty"`
 	Keys       []Key  `gorm:"foreignKey:ServerID" json:"keys,omitempty"`
 }

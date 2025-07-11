@@ -45,7 +45,7 @@ func SeedData(db *gorm.DB) error {
 	}
 
 	server := model.Server{
-		Region: regions[0].RegionName,
+		Region: regions[0].ShortName,
 		Access: "https://77.233.215.100:3411/g2G6SIZWzAPcXeFVjO_78A",
 	}
 
