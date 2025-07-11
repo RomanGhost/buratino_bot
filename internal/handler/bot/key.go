@@ -101,14 +101,16 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 		}
 	}
 
-	if minServer.ID	 == 0 {
+	if minServer.ID == 0 {
 		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
+
+	h.createKey(ctx, b, update, minServer.ID)
 }
 
-func (h *KeyHandler) CreateKeyInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint) {
+	telegramUser := update.CallbackQuery.From
 
 	key, err := h.outline.CreateAccessKey()
 	if err != nil {
@@ -117,7 +119,6 @@ func (h *KeyHandler) CreateKeyInline(ctx context.Context, b *bot.Bot, update *mo
 		return
 	}
 
-	telegramUser := update.CallbackQuery.From
 	key.Name = fmt.Sprintf("%v_%v", telegramUser.ID, time.Now().UTC().Unix())
 	err = h.outline.RenameAccessKey(key.ID, key.Name)
 	if err != nil {
@@ -128,7 +129,7 @@ func (h *KeyHandler) CreateKeyInline(ctx context.Context, b *bot.Bot, update *mo
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	_, err = h.keyService.CreateKey(telegramUser.ID, 1, connectionKey)
+	_, err = h.keyService.CreateKey(telegramUser.ID, serverID, connectionKey)
 	if err != nil {
 		log.Printf("[WARN] write key in db: %v\n", err)
 		return

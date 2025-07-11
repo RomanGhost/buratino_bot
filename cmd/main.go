@@ -44,8 +44,9 @@ func main() {
 	keyService := service.NewKeyService(keyRepository, userRepository, serverRepository)
 	userService := service.NewUserService(userRepository, userRoleRepository)
 	regionService := service.NewRegionService(regionRepository)
+	serverService := service.NewServerService(serverRepository)
 
-	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, regionService)
+	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, regionService, serverService)
 	userHandler := handlerBot.NewUserHandler(userService)
 
 	// initialize bot
