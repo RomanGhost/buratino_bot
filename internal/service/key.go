@@ -53,3 +53,11 @@ func (s *KeyService) CreateKey(userTelegramID int64, serverID uint, connectURL s
 
 	return &newKey, nil
 }
+
+func (s *KeyService) CountKeysOfServer(serverID uint) int {
+	key, err := s.keyRepository.GetByServerID(serverID)
+	if err != nil {
+		return -1
+	}
+	return len(key)
+}

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"time"
 
+	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
@@ -81,8 +83,27 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	shortRegionName := strings.Split(data, "_")[1]
 
 	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
-	if err != nil {
+	if err != nil || len(servers) == 0 {
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
 
+	minCount := math.MaxInt
+	var minServer model.Server
+	for _, server := range servers {
+		val := h.keyService.CountKeysOfServer(server.ID)
+		if val == -1 {
+			continue
+		}
+		if minCount > val {
+			minCount = val
+			minServer = server
+		}
+	}
+
+	if minServer.ID	 == 0 {
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
 	}
 }
 
@@ -104,7 +125,7 @@ func (h *KeyHandler) CreateKeyInline(ctx context.Context, b *bot.Bot, update *mo
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
-	//
+
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
 	_, err = h.keyService.CreateKey(telegramUser.ID, 1, connectionKey)
@@ -149,6 +170,18 @@ func regionsError(ctx context.Context, b *bot.Bot, chatId int64) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatId,
 		Text:      `Возникли проблемы с полученим регионов, уже чиним\!`,
+		ParseMode: models.ParseModeMarkdown,
+	})
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func serverError(ctx context.Context, b *bot.Bot, chatId int64) {
+	log.Printf("[WARN] Error get server of region")
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    chatId,
+		Text:      `Возникли проблемы с полученим серверов выбранного региона, уже чиним\!`,
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
