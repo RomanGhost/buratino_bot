@@ -9,6 +9,7 @@ import (
 // Key represents keys table
 type Key struct {
 	gorm.Model
+	OutlineKeyId int       `json:"outline_key_id"`
 	UserID       uint      `gorm:"index" json:"user_id"`
 	ServerID     uint      `gorm:"index" json:"server_id"`
 	DeadlineTime time.Time `json:"deadline_time"`

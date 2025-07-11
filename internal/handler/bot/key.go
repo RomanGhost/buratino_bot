@@ -132,7 +132,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	_, err = h.keyService.CreateKey(telegramUser.ID, serverID, connectionKey)
+	_, err = h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
