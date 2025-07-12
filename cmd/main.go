@@ -58,8 +58,9 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	opts := []bot.Option {
+	opts := []bot.Option{
 		bot.WithCallbackQueryDataHandler("choosenRegion_", bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler("extendKey_", bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
 		bot.WithCallbackQueryDataHandler("createKey", bot.MatchTypeExact, keyHandler.CreateKeyGetRegionInline),
 		bot.WithCallbackQueryDataHandler("infoProject", bot.MatchTypeExact, handlerBot.InfoAboutInline),
 	}
@@ -70,10 +71,10 @@ func main() {
 	}
 
 	// scheluder init
-	keyScheduler := scheduler.NewScheduler(keyRepository, time.Minute*5, b, ctx)
-	keyScheduler.Run()
+	keyScheduler := scheduler.NewScheduler(keyService, time.Minute*5, b, ctx)
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, userHandler.RegisterUser)
 
+	keyScheduler.Run()
 	b.Start(ctx)
 }

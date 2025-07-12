@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +30,26 @@ func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyServic
 		keyService:    keyService,
 		regionService: regionService,
 		serverService: serverService,
+	}
+}
+
+func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+
+	data := update.CallbackQuery.Data
+	keyIDString := strings.Split(data, "_")[1]
+
+	keyID, err := strconv.ParseUint(keyIDString, 10, 64)
+	if err != nil {
+		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	}
+	keyIDUint := uint(keyID)
+
+	isActiveKey := h.keyService.IsActiveKey(keyIDUint)
+	if isActiveKey {
+		h.keyService.ExtendKeyByID(keyIDUint)
+	} else {
+		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 }
 
@@ -132,7 +153,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	_, err = h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey)
+	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -142,8 +163,8 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
-			"🔑 *Вот мой волшебный ключик* \\- держи, не потеряй\\! 🪄\n\n`%s`\n\n_Просто нажми — и он скопируется сам собой\\.\\.\\._ ✨",
-			bot.EscapeMarkdown(connectionKey),
+			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n\n`%s`\n\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
+			keyDB.ID, bot.EscapeMarkdown(connectionKey),
 		),
 		ParseMode: "MarkdownV2",
 	})
@@ -154,8 +175,29 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 }
 
-func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64) {
+func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyID uint) {
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Создать ключ", CallbackData: fmt.Sprintf("extendKey_%d", keyID)},
+			},
+		},
+	}
 
+	// notify users
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text: fmt.Sprintf(
+			"Ключ №%d  скоро совсем испарится, нажми *продлить*, чтобы продолжать пользоваться",
+			keyID,
+		),
+		ParseMode:   "MarkdownV2",
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send key message %v", err)
+	}
 }
 
 func CreateKeyInlineShutdown(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
@@ -207,6 +249,28 @@ func missKeyError(ctx context.Context, b *bot.Bot, chatId int64) {
 *Чуток терпения, друг мой* \- скоро всё найдётся, и волшебство продолжится ✨`,
 		ParseMode: models.ParseModeMarkdown,
 	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Создать ключ", CallbackData: "createKey"},
+			},
+		},
+	}
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        `Увы ключ совсем заржавел, придется создать новый`,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
 	if err != nil {
 		log.Printf("[WARN] Error send info error message %v", err)
 	}

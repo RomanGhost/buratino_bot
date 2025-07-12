@@ -66,18 +66,17 @@ func (r *KeyRepository) GetActiveKeysByServer(serverID uint) ([]model.Key, error
 }
 
 // GetExpiredKeys gets expired keys
-func (r *KeyRepository) GetExpiredKeys() ([]model.Key, error) {
+func (r *KeyRepository) GetExpiredKeys(deadLine time.Time) ([]model.Key, error) {
 	var keys []model.Key
-	err := r.db.Where("deadline_time < ?", time.Now()).Find(&keys).Error
+	err := r.db.Where("deadline_time <= ?", deadLine).Find(&keys).Error
 	return keys, err
 }
 
 // GetExpiringSoon gets keys expiring within specified duration
-func (r *KeyRepository) GetExpiringSoon(duration time.Duration) ([]model.Key, error) {
+func (r *KeyRepository) GetExpiringSoon(timeStart time.Time, timeEnd time.Time) ([]model.Key, error) {
 	var keys []model.Key
-	expiryTime := time.Now().Add(duration)
-	err := r.db.Where("deadline_time BETWEEN ? AND ? AND is_active = ?",
-		time.Now(), expiryTime, true).Find(&keys).Error
+	err := r.db.Preload("User").Where("deadline_time BETWEEN ? AND ? AND is_active = ?",
+		timeStart, timeEnd, true).Find(&keys).Error
 	return keys, err
 }
 

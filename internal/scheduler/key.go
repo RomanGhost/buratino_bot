@@ -6,19 +6,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
 )
 
 type KeyScheduler struct {
 	BotSheduler
-	outline       *outline.OutlineClient
-	keyRepository *repository.KeyRepository
+	outline    *outline.OutlineClient
+	keyService *service.KeyService
 }
 
-func NewScheduler(keyRepository *repository.KeyRepository, intervalSeconds time.Duration, b *bot.Bot, ctx context.Context) *KeyScheduler {
+func NewScheduler(keyService *service.KeyService, intervalSeconds time.Duration, b *bot.Bot, ctx context.Context) *KeyScheduler {
 	return &KeyScheduler{}
 }
 
@@ -54,7 +54,7 @@ func (s *KeyScheduler) Run() {
 }
 
 func (s *KeyScheduler) notifyExpired() {
-	keysExpiringSoon, err := s.keyRepository.GetExpiringSoon(s.timeInterval)
+	keysExpiringSoon, err := s.keyService.GetExpiringSoon(s.timeInterval)
 	if err != nil || len(keysExpiringSoon) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)
 	}
@@ -66,13 +66,13 @@ func (s *KeyScheduler) notifyExpired() {
 		default:
 			chatId := key.User.TelegramID
 
-			handlerBot.SendNotifyAboutDeadline(s.ctx, s.b, chatId)
+			handlerBot.SendNotifyAboutDeadline(s.ctx, s.b, chatId, key.ID)
 		}
 	}
 }
 
 func (s *KeyScheduler) diactivateExpiredKeys() {
-	keysExpired, err := s.keyRepository.GetExpiredKeys()
+	keysExpired, err := s.keyService.GetExpiredKeys()
 	if err != nil || len(keysExpired) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)
 	}
@@ -87,10 +87,11 @@ func (s *KeyScheduler) diactivateExpiredKeys() {
 			errOutline := s.outline.SetDataLimit(key.OutlineKeyId, 0)
 			if errOutline != nil {
 				log.Printf("[ERROR] Can't change datalimit key #%v", key.ID)
-				s.keyRepository.Delete(key.ID)
+				s.keyService.Delete(key.ID)
+				continue
 			}
 
-			err := s.keyRepository.DeactivateKey(key.ID)
+			err := s.keyService.DeactivateKey(key.ID)
 			if err != nil {
 				log.Printf("[ERROR] Can't diactivate key #%v", key.ID)
 				continue
