@@ -5,11 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/scheduler"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
 	"gorm.io/driver/postgres"
@@ -35,17 +37,20 @@ func main() {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
+	// repository init
 	keyRepository := repository.NewKeyRepository(db)
 	userRepository := repository.NewUserRepository(db)
 	userRoleRepository := repository.NewUserRoleRepository(db)
 	serverRepository := repository.NewServerRepository(db)
 	regionRepository := repository.NewRegionRepository(db)
 
+	// service init
 	keyService := service.NewKeyService(keyRepository, userRepository, serverRepository)
 	userService := service.NewUserService(userRepository, userRoleRepository)
 	regionService := service.NewRegionService(regionRepository)
 	serverService := service.NewServerService(serverRepository)
 
+	// handler init
 	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, regionService, serverService)
 	userHandler := handlerBot.NewUserHandler(userService)
 
@@ -54,8 +59,8 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
-		// choosenRegion_
 		bot.WithCallbackQueryDataHandler("choosenRegion_", bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler("extendKey_", bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
 		bot.WithCallbackQueryDataHandler("createKey", bot.MatchTypeExact, keyHandler.CreateKeyGetRegionInline),
 		bot.WithCallbackQueryDataHandler("infoProject", bot.MatchTypeExact, handlerBot.InfoAboutInline),
 	}
@@ -64,7 +69,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// scheluder init
+	keyScheduler := scheduler.NewScheduler(keyService, time.Minute*5, b, ctx)
+
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, userHandler.RegisterUser)
 
+	keyScheduler.Run()
 	b.Start(ctx)
 }

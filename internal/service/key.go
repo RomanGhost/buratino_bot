@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
@@ -22,7 +23,7 @@ func NewKeyService(keyRepository *repository.KeyRepository, userRepository *repo
 	}
 }
 
-func (s *KeyService) CreateKey(userTelegramID int64, serverID uint, connectURL string) (*model.Key, error) {
+func (s *KeyService) CreateKey(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string) (*model.Key, error) {
 	user, err := s.userRepository.GetByTelegramID(userTelegramID)
 	if err != nil {
 		return nil, err
@@ -40,9 +41,10 @@ func (s *KeyService) CreateKey(userTelegramID int64, serverID uint, connectURL s
 	}
 
 	newKey := model.Key{
+		OutlineKeyId: outlineKeyId,
 		ServerID:     server.ID,
 		UserID:       user.ID,
-		DeadlineTime: time.Now().Add(30 * time.Minute),
+		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(30 * time.Minute),
 		ConnectUrl:   connectURL,
 	}
 
@@ -60,4 +62,52 @@ func (s *KeyService) CountKeysOfServer(serverID uint) int {
 		return -1
 	}
 	return len(key)
+}
+
+func (s *KeyService) Delete(keyID uint) {
+	s.keyRepository.Delete(keyID)
+}
+
+func (s *KeyService) DeactivateKey(keyID uint) error {
+	return s.keyRepository.DeactivateKey(keyID)
+}
+
+func (s *KeyService) GetExpiringSoon(timeDuration time.Duration) ([]model.Key, error) {
+	timeStart := time.Now().UTC().Truncate(time.Minute)
+	timeEnd := timeStart.Add(timeDuration)
+
+	return s.keyRepository.GetExpiringSoon(timeStart, timeEnd)
+}
+
+func (s *KeyService) GetExpiredKeys() ([]model.Key, error) {
+	timeDeadline := time.Now().UTC().Truncate(time.Minute)
+
+	return s.keyRepository.GetExpiredKeys(timeDeadline)
+}
+
+func (s *KeyService) IsActiveKey(keyID uint) bool {
+	key, err := s.keyRepository.GetByID(keyID)
+	if err != nil {
+		log.Println("[INFO] Can't get key")
+		return false
+	}
+	if key == nil {
+		return false
+	}
+	return true
+}
+
+func (s *KeyService) ExtendKeyByID(keyID uint) (*model.Key, error) {
+	key, err := s.keyRepository.GetByID(keyID)
+	if err != nil {
+		return nil, fmt.Errorf("error get key by ID: %v", keyID)
+	}
+	newKeyDeadlineTime := key.DeadlineTime.Add(time.Minute * 30)
+	key.DeadlineTime = newKeyDeadlineTime
+
+	err = s.keyRepository.ExtendKey(keyID, newKeyDeadlineTime)
+	if err != nil {
+		return nil, fmt.Errorf("error expire key: %v", err)
+	}
+	return key, nil
 }
