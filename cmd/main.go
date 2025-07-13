@@ -51,7 +51,8 @@ func main() {
 	serverService := service.NewServerService(serverRepository)
 
 	// handler init
-	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, regionService, serverService)
+	RegionHandler := handlerBot.NewRegionHandler(regionService)
+	keyHandler := handlerBot.NewKeyHandler(outlineClient, keyService, serverService)
 	userHandler := handlerBot.NewUserHandler(userService)
 
 	// initialize bot
@@ -59,10 +60,12 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
-		bot.WithCallbackQueryDataHandler("choosenRegion_", bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
-		bot.WithCallbackQueryDataHandler("extendKey_", bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler("createKey", bot.MatchTypeExact, keyHandler.CreateKeyGetRegionInline),
-		bot.WithCallbackQueryDataHandler("infoProject", bot.MatchTypeExact, handlerBot.InfoAboutInline),
+		bot.WithCallbackQueryDataHandler(handlerBot.RegionChoose, bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler(handlerBot.ExtendKey, bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
+		bot.WithCallbackQueryDataHandler(handlerBot.CreateKey, bot.MatchTypeExact, RegionHandler.GetRegionsInline),
+
+		bot.WithCallbackQueryDataHandler(handlerBot.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
+		bot.WithCallbackQueryDataHandler(handlerBot.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
 	}
 
 	b, err := bot.New("7786090535:AAGg1aj6SkJwc6mURapwQ7AYf4hmRo-ynAE", opts...)
@@ -71,7 +74,7 @@ func main() {
 	}
 
 	// scheluder init
-	keyScheduler := scheduler.NewScheduler(keyService, time.Minute*5, b, ctx)
+	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, ctx, keyService, outlineClient)
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, userHandler.RegisterUser)
 

@@ -18,6 +18,7 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{userService}
 }
 
+// first message
 func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.Message.From
 	log.Printf("[INFO] Registe user: %v, ID: %v", telegramUser.Username, telegramUser.ID)
@@ -28,9 +29,10 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: "createKey"},
+				{Text: "Создать ключ", CallbackData: ExtendKey},
 			}, {
-				{Text: "Узнать о проекте", CallbackData: "infoProject"},
+				{Text: "Узнать о проекте", CallbackData: InfoAboutProject},
+				{Text: "Об Outline", CallbackData: OutlineHelp},
 			},
 		},
 	}

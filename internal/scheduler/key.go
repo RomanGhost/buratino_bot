@@ -14,17 +14,22 @@ import (
 
 type KeyScheduler struct {
 	BotSheduler
-	outline    *outline.OutlineClient
-	keyService *service.KeyService
+	outlineHandler *outline.OutlineClient
+	keyService     *service.KeyService
 }
 
-func NewScheduler(keyService *service.KeyService, intervalSeconds time.Duration, b *bot.Bot, ctx context.Context) *KeyScheduler {
-	return &KeyScheduler{}
+func NewScheduler(intervalSeconds time.Duration, b *bot.Bot, ctx context.Context, keyService *service.KeyService, outlineHandler *outline.OutlineClient) *KeyScheduler {
+	return &KeyScheduler{
+		BotSheduler:    BotSheduler{intervalSeconds, b, ctx},
+		keyService:     keyService,
+		outlineHandler: outlineHandler,
+	}
 }
 
 func (s *KeyScheduler) Run() {
+	log.Println("[INFO] scheduler run")
 	go func() {
-		ticker := time.NewTicker(time.Duration(s.timeInterval) * time.Second)
+		ticker := time.NewTicker(s.timeInterval)
 		defer ticker.Stop()
 
 		for {
@@ -84,7 +89,7 @@ func (s *KeyScheduler) diactivateExpiredKeys() {
 		default:
 			log.Printf("[INFO] diactivate key #%v", key.ID)
 
-			errOutline := s.outline.SetDataLimit(key.OutlineKeyId, 0)
+			errOutline := s.outlineHandler.SetDataLimit(key.OutlineKeyId, 0)
 			if errOutline != nil {
 				log.Printf("[ERROR] Can't change datalimit key #%v", key.ID)
 				s.keyService.Delete(key.ID)

@@ -20,21 +20,19 @@ import (
 type KeyHandler struct {
 	outline       *outline.OutlineClient
 	keyService    *service.KeyService
-	regionService *service.RegionService
 	serverService *service.ServerService
 }
 
-func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyService, regionService *service.RegionService, serverService *service.ServerService) *KeyHandler {
+func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
 	return &KeyHandler{
 		outline:       outline,
 		keyService:    keyService,
-		regionService: regionService,
 		serverService: serverService,
 	}
 }
 
 func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+	function.InlineAnswerWithDelete(ctx, b, update)
 
 	data := update.CallbackQuery.Data
 	keyIDString := strings.Split(data, "_")[1]
@@ -51,57 +49,21 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	} else {
 		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
-}
 
-// function for get region of server
-func (h *KeyHandler) CreateKeyGetRegionInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
-
-	regions, err := h.regionService.GetRegionsWithServers()
-	if err != nil {
-		regionsError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	// regions into buttons
-	inlineButtons := [][]models.InlineKeyboardButton{}
-	line := []models.InlineKeyboardButton{}
-	for i, region := range regions {
-		if len(region.Servers) == 0 {
-			continue
-		}
-		button := models.InlineKeyboardButton{Text: region.RegionName, CallbackData: fmt.Sprintf("choosenRegion_%v", region.ShortName)}
-		line = append(line, button)
-
-		if (i+1)%3 == 0 {
-			inlineButtons = append(inlineButtons, line)
-			line = line[0:0]
-		}
-	}
-
-	if len(line) > 0 {
-		inlineButtons = append(inlineButtons, line)
-	}
-
-	// send message
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: inlineButtons,
-	}
-	messageText := `Выбери регион, из которого нужно принести ключик`
+	messageText := `Ключик продлен!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
-		Text:        messageText,
-		ReplyMarkup: inlineKeyboard,
-		ParseMode:   "MarkdownV2",
+		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+		Text:      messageText,
+		ParseMode: "MarkdownV2",
 	})
 
 	if err != nil {
-		log.Printf("[WARN] Error send region message %v", err)
+		log.Printf("[WARN] Error send notify message %v", err)
 	}
 }
 
 func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswer(ctx, b, update.CallbackQuery.ID)
+	function.InlineAnswerWithDelete(ctx, b, update)
 
 	// get data from inline
 	data := update.CallbackQuery.Data
@@ -157,7 +119,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey)
+	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey, key.Name)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -183,7 +145,7 @@ func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyI
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: fmt.Sprintf("extendKey_%d", keyID)},
+				{Text: "Продлить ключ", CallbackData: fmt.Sprintf("%v%d", ExtendKey, keyID)},
 			},
 		},
 	}
@@ -263,7 +225,7 @@ func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: "createKey"},
+				{Text: "Создать ключ", CallbackData: ExtendKey},
 			},
 		},
 	}
