@@ -29,7 +29,7 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: ExtendKey},
+				{Text: "Создать ключ", CallbackData: CreateKey},
 			}, {
 				{Text: "Узнать о проекте", CallbackData: InfoAboutProject},
 				{Text: "Об Outline", CallbackData: OutlineHelp},

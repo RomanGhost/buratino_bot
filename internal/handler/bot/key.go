@@ -18,14 +18,12 @@ import (
 )
 
 type KeyHandler struct {
-	outline       *outline.OutlineClient
 	keyService    *service.KeyService
 	serverService *service.ServerService
 }
 
-func NewKeyHandler(outline *outline.OutlineClient, keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
+func NewKeyHandler(keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
 	return &KeyHandler{
-		outline:       outline,
 		keyService:    keyService,
 		serverService: serverService,
 	}
@@ -50,7 +48,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 
-	messageText := `Ключик продлен!`
+	messageText := `Ключик продлен\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		Text:      messageText,
@@ -95,14 +93,16 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 		return
 	}
 
-	h.createKey(ctx, b, update, minServer.ID)
+	outlineClient := outline.NewOutlineClient(minServer.Access)
+
+	h.createKey(ctx, b, update, minServer.ID, outlineClient)
 }
 
-func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint) {
+func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint, outlineClient *outline.OutlineClient) {
 	telegramUser := update.CallbackQuery.From
 
 	// generate new keys with name
-	key, err := h.outline.CreateAccessKey()
+	key, err := outlineClient.CreateAccessKey()
 	if err != nil {
 		log.Printf("[WARN] create outline key: %v\n", err)
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
@@ -110,7 +110,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	}
 
 	key.Name = fmt.Sprintf("%v_%v", telegramUser.ID, time.Now().UTC().Unix())
-	err = h.outline.RenameAccessKey(key.ID, key.Name)
+	err = outlineClient.RenameAccessKey(key.ID, key.Name)
 	if err != nil {
 		log.Printf("[WARN] Can't rename outline key: %v\n", err)
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
@@ -225,7 +225,7 @@ func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: ExtendKey},
+				{Text: "Создать ключ", CallbackData: CreateKey},
 			},
 		},
 	}

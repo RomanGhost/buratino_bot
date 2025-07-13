@@ -15,7 +15,7 @@ func InfoAboutInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: ExtendKey},
+				{Text: "Создать ключ", CallbackData: CreateKey},
 			},
 		},
 	}
@@ -43,7 +43,7 @@ func HelpOutlineIntructionInline(ctx context.Context, b *bot.Bot, update *models
 	inlineKeyboard := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Создать ключ", CallbackData: ExtendKey},
+				{Text: "Создать ключ", CallbackData: CreateKey},
 			},
 		},
 	}
