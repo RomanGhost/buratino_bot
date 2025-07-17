@@ -94,10 +94,10 @@ func main() {
 	}
 
 	// scheluder init
-	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, ctx, keyService)
+	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, keyService)
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, userHandler.RegisterUser)
 
-	keyScheduler.Run()
+	keyScheduler.Run(ctx)
 	b.Start(ctx)
 }

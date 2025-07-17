@@ -95,6 +95,9 @@ func (s *KeyService) IsActiveKey(keyID uint) bool {
 	if key == nil {
 		return false
 	}
+	if !key.IsActive {
+		return false
+	}
 	return true
 }
 

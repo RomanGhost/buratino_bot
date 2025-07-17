@@ -42,11 +42,12 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	keyIDUint := uint(keyID)
 
 	isActiveKey := h.keyService.IsActiveKey(keyIDUint)
-	if isActiveKey {
-		h.keyService.ExtendKeyByID(keyIDUint)
-	} else {
+	if !isActiveKey {
 		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
 	}
+
+	h.keyService.ExtendKeyByID(keyIDUint)
 
 	messageText := `Ключик продлен\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{

@@ -17,14 +17,14 @@ type KeyScheduler struct {
 	keyService *service.KeyService
 }
 
-func NewScheduler(intervalSeconds time.Duration, b *bot.Bot, ctx context.Context, keyService *service.KeyService) *KeyScheduler {
+func NewScheduler(intervalSeconds time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
 	return &KeyScheduler{
-		BotSheduler: BotSheduler{intervalSeconds, b, ctx},
+		BotSheduler: BotSheduler{intervalSeconds, b},
 		keyService:  keyService,
 	}
 }
 
-func (s *KeyScheduler) Run() {
+func (s *KeyScheduler) Run(ctx context.Context) {
 	log.Println("[INFO] scheduler run")
 	go func() {
 		ticker := time.NewTicker(s.timeInterval)
@@ -32,7 +32,7 @@ func (s *KeyScheduler) Run() {
 
 		for {
 			select {
-			case <-s.ctx.Done():
+			case <-ctx.Done():
 				return
 			case t := <-ticker.C:
 				log.Printf("[INFO] Check keys into db: %v", t)
@@ -42,12 +42,12 @@ func (s *KeyScheduler) Run() {
 
 				go func() {
 					defer wg.Done()
-					s.notifyExpired()
+					s.notifyExpired(ctx)
 				}()
 
 				go func() {
 					defer wg.Done()
-					s.diactivateExpiredKeys()
+					s.diactivateExpiredKeys(ctx)
 				}()
 
 				wg.Wait()
@@ -56,25 +56,25 @@ func (s *KeyScheduler) Run() {
 	}()
 }
 
-func (s *KeyScheduler) notifyExpired() {
-	keysExpiringSoon, err := s.keyService.GetExpiringSoon(s.timeInterval)
+func (s *KeyScheduler) notifyExpired(ctx context.Context) {
+	keysExpiringSoon, err := s.keyService.GetExpiringSoon(s.timeInterval * 2)
 	if err != nil || len(keysExpiringSoon) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)
 	}
 
 	for _, key := range keysExpiringSoon {
 		select {
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		default:
 			chatId := key.User.TelegramID
 
-			handlerBot.SendNotifyAboutDeadline(s.ctx, s.b, chatId, key.ID)
+			handlerBot.SendNotifyAboutDeadline(ctx, s.b, chatId, key.ID)
 		}
 	}
 }
 
-func (s *KeyScheduler) diactivateExpiredKeys() {
+func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 	keysExpired, err := s.keyService.GetExpiredKeys()
 	if err != nil || len(keysExpired) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)
@@ -82,7 +82,7 @@ func (s *KeyScheduler) diactivateExpiredKeys() {
 
 	for _, key := range keysExpired {
 		select {
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		default:
 			log.Printf("[INFO] diactivate key #%v", key.ID)
