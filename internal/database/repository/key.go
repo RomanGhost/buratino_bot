@@ -145,12 +145,12 @@ func (r *KeyRepository) ActivateKey(id uint) error {
 	return r.db.Model(&model.Key{}).Where("id = ?", id).Update("is_active", true).Error
 }
 
-// ExtendKey extends key deadline (only for active keys)
+// data.ExtendKey extends key deadline (only for active keys)
 func (r *KeyRepository) ExtendKey(id uint, newDeadline time.Time) error {
 	return r.db.Model(&model.Key{}).Where("id = ? AND is_active = ?", id, true).Update("deadline_time", newDeadline).Error
 }
 
-// ExtendKeyIncludeInactive extends key deadline (including inactive keys)
+// data.ExtendKeyIncludeInactive extends key deadline (including inactive keys)
 func (r *KeyRepository) ExtendKeyIncludeInactive(id uint, newDeadline time.Time) error {
 	return r.db.Model(&model.Key{}).Where("id = ?", id).Update("deadline_time", newDeadline).Error
 }

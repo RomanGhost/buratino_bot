@@ -12,6 +12,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/scheduler"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
@@ -76,12 +77,12 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
-		bot.WithCallbackQueryDataHandler(handlerBot.RegionChoose, bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
-		bot.WithCallbackQueryDataHandler(handlerBot.ExtendKey, bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler(handlerBot.CreateKey, bot.MatchTypeExact, RegionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
+		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, RegionHandler.GetRegionsInline),
 
-		bot.WithCallbackQueryDataHandler(handlerBot.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
-		bot.WithCallbackQueryDataHandler(handlerBot.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
+		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
+		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
 	}
 
 	botToken, exist := os.LookupEnv("BOT_API_TOKEN")

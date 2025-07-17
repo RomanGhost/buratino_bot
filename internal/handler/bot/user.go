@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -26,16 +27,10 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 		log.Printf("[WARN] user register error: %v", err)
 	}
 
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Создать ключ", CallbackData: CreateKey},
-			}, {
-				{Text: "Узнать о проекте", CallbackData: InfoAboutProject},
-				{Text: "Об Outline", CallbackData: OutlineHelp},
-			},
-		},
-	}
+	inlineKeyboard := data.CreateKeyboard(
+		[]models.InlineKeyboardButton{data.CreateKeyButton()},
+		[]models.InlineKeyboardButton{data.AboutOutlineButton(), data.KnowProjectButton()},
+	)
 
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,

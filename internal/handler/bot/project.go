@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -12,13 +13,7 @@ import (
 func InfoAboutInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswer(ctx, b, update)
 
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Создать ключ", CallbackData: CreateKey},
-			},
-		},
-	}
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
 
 	message := `📜 *Сказ о волшебных ключах* 🗝️
 В этой сказочной обители ты встретил *Буратино* \- не просто деревянного мальчишку, а стража потайных троп интернета\! 🌐✨
@@ -40,13 +35,7 @@ func InfoAboutInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 func HelpOutlineIntructionInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswer(ctx, b, update)
 
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Создать ключ", CallbackData: CreateKey},
-			},
-		},
-	}
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
 
 	message := `📜 *Волшебная инструкция по настройке VPN*
 Следуй за мной, деревянный друг, в страну свободного интернета\! 🌍✨ Вот как обрести силу волшебного ключа:

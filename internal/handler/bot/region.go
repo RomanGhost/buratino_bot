@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log"
 
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
 	"github.com/go-telegram/bot"
@@ -31,30 +31,8 @@ func (h *RegionHandler) GetRegionsInline(ctx context.Context, b *bot.Bot, update
 		return
 	}
 
-	// regions into buttons
-	inlineButtons := [][]models.InlineKeyboardButton{}
-	line := []models.InlineKeyboardButton{}
-	for i, region := range regions {
-		if len(region.Servers) == 0 {
-			continue
-		}
-		button := models.InlineKeyboardButton{Text: region.RegionName, CallbackData: fmt.Sprintf("%v%v", RegionChoose, region.ShortName)}
-		line = append(line, button)
+	inlineKeyboard := data.GetRegionsInlineKeyboard(regions)
 
-		if (i+1)%3 == 0 {
-			inlineButtons = append(inlineButtons, line)
-			line = line[0:0]
-		}
-	}
-
-	if len(line) > 0 {
-		inlineButtons = append(inlineButtons, line)
-	}
-
-	// send message
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: inlineButtons,
-	}
 	messageText := `Выбери регион, из которого нужно принести ключик`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,

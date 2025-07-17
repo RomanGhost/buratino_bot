@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/service"
@@ -143,13 +144,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 }
 
 func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyID uint) {
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Продлить ключ", CallbackData: fmt.Sprintf("%v%d", ExtendKey, keyID)},
-			},
-		},
-	}
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.ExtendKeyButton(keyID)})
 
 	// notify users
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
@@ -223,13 +218,7 @@ func missKeyError(ctx context.Context, b *bot.Bot, chatId int64) {
 }
 
 func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
-	inlineKeyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Создать ключ", CallbackData: CreateKey},
-			},
-		},
-	}
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
 
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      chatId,
