@@ -93,7 +93,6 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			errOutline := outlineClient.SetDataLimit(key.OutlineKeyId, 0)
 			if errOutline != nil {
 				log.Printf("[ERROR] Can't change datalimit key #%v", key.ID)
-				s.keyService.Delete(key.ID)
 				continue
 			}
 
@@ -102,6 +101,7 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 				log.Printf("[ERROR] Can't diactivate key #%v", key.ID)
 				continue
 			}
+			s.keyService.Delete(key.ID)
 		}
 	}
 

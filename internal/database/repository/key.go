@@ -92,14 +92,14 @@ func (r *KeyRepository) GetActiveKeysByServer(serverID uint) ([]model.Key, error
 // GetExpiredKeys gets expired keys (включая неактивные)
 func (r *KeyRepository) GetExpiredKeys(deadLine time.Time) ([]model.Key, error) {
 	var keys []model.Key
-	err := r.db.Where("deadline_time <= ?", deadLine).Find(&keys).Error
+	err := r.db.Preload("Server").Where("deadline_time <= ?", deadLine).Find(&keys).Error
 	return keys, err
 }
 
 // GetExpiredActiveKeys gets expired active keys
 func (r *KeyRepository) GetExpiredActiveKeys(deadLine time.Time) ([]model.Key, error) {
 	var keys []model.Key
-	err := r.db.Where("deadline_time <= ? AND is_active = ?", deadLine, true).Find(&keys).Error
+	err := r.db.Preload("Server").Where("deadline_time <= ? AND is_active = ?", deadLine, true).Find(&keys).Error
 	return keys, err
 }
 

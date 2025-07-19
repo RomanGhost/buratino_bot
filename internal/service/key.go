@@ -83,7 +83,7 @@ func (s *KeyService) GetExpiringSoon(timeDuration time.Duration) ([]model.Key, e
 func (s *KeyService) GetExpiredKeys() ([]model.Key, error) {
 	timeDeadline := time.Now().UTC().Truncate(time.Minute)
 
-	return s.keyRepository.GetExpiredKeys(timeDeadline)
+	return s.keyRepository.GetExpiredActiveKeys(timeDeadline)
 }
 
 func (s *KeyService) IsActiveKey(keyID uint) bool {
