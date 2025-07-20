@@ -18,9 +18,14 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type keyInfo struct {
+	ServerID uint
+}
+
 type KeyHandler struct {
-	keyService    *service.KeyService
-	serverService *service.ServerService
+	keyService     *service.KeyService
+	serverService  *service.ServerService
+	keyCreatorInfo map[int64]keyInfo
 }
 
 func NewKeyHandler(keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
@@ -65,6 +70,8 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswerWithDelete(ctx, b, update)
 
+	telegramUser := update.CallbackQuery.From
+
 	// get data from inline
 	data := update.CallbackQuery.Data
 	shortRegionName := strings.Split(data, "_")[1]
@@ -95,13 +102,27 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 		return
 	}
 
-	outlineClient := outline.NewOutlineClient(minServer.Access)
-
-	h.createKey(ctx, b, update, minServer.ID, outlineClient)
+	// переписать для пользователя его данные по серверу
+	h.keyCreatorInfo[telegramUser.ID] = keyInfo{minServer.ID}
+	h.createKey(ctx, b, update)
 }
 
-func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint, outlineClient *outline.OutlineClient) {
+func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.CallbackQuery.From
+	val, ok := h.keyCreatorInfo[telegramUser.ID]
+	if !ok {
+		// отправить в начало
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	server, err := h.serverService.GetServerByID(val.ServerID)
+	if err != nil {
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	outlineClient := outline.NewOutlineClient(server.Access)
 
 	// generate new keys with name
 	key, err := outlineClient.CreateAccessKey()
@@ -121,7 +142,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey, key.Name)
+	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
