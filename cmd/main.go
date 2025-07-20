@@ -22,6 +22,15 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+/*// TODO
+- [+] Задавать время жизни ключа при его создании
+- [ ] Добавить возможность изменять длительность ключа
+- [ ] Добавить пользователю монет
+- [ ] Личный кабинет
+- [ ] Продление ключа сразу если он уже все
+- [ ] Возможность продлить написав боту - да
+*/
+
 func buildDSN() string {
 	host := os.Getenv("DATABASE_ADDR")
 	port := os.Getenv("DATABASE_PORT")
@@ -68,7 +77,7 @@ func main() {
 	serverService := service.NewServerService(serverRepository)
 
 	// handler init
-	RegionHandler := handlerBot.NewRegionHandler(regionService)
+	regionHandler := handlerBot.NewRegionHandler(regionService)
 	keyHandler := handlerBot.NewKeyHandler(keyService, serverService)
 	userHandler := handlerBot.NewUserHandler(userService)
 
@@ -77,12 +86,18 @@ func main() {
 	defer cancel()
 
 	opts := []bot.Option{
+		// key work
 		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
 		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, RegionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, regionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, keyHandler.CreateKeyGetTimeInline),
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
+
+		// time work
+		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handlerBot.AddTimeInline),
+		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handlerBot.ReduceTimeInline),
 	}
 
 	botToken, exist := os.LookupEnv("BOT_API_TOKEN")

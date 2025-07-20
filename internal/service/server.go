@@ -16,3 +16,7 @@ func NewServerService(serverRepository *repository.ServerRepository) *ServerServ
 func (s *ServerService) GetServersByRegionShortName(shortRegionName string) ([]model.Server, error) {
 	return s.serverRepository.GetByRegion(shortRegionName)
 }
+
+func (s *ServerService) GetServerByID(serverID uint) (*model.Server, error) {
+	return s.serverRepository.GetByID(serverID)
+}

@@ -23,7 +23,7 @@ func NewKeyService(keyRepository *repository.KeyRepository, userRepository *repo
 	}
 }
 
-func (s *KeyService) CreateKey(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
+func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string, deadline time.Duration) (*model.Key, error) {
 	user, err := s.userRepository.GetByTelegramID(userTelegramID)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (s *KeyService) CreateKey(outlineKeyId int, userTelegramID int64, serverID 
 		OutlineKeyId: outlineKeyId,
 		ServerID:     server.ID,
 		UserID:       user.ID,
-		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(30 * time.Minute),
+		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(deadline),
 		ConnectUrl:   connectURL,
 		KeyName:      keyName,
 	}
@@ -55,6 +55,10 @@ func (s *KeyService) CreateKey(outlineKeyId int, userTelegramID int64, serverID 
 	}
 
 	return &newKey, nil
+}
+
+func (s *KeyService) CreateDefaultKey(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
+	return s.CreateKeyWithDeadline(outlineKeyId, userTelegramID, serverID, connectURL, keyName, time.Duration(30*time.Minute))
 }
 
 func (s *KeyService) CountKeysOfServer(serverID uint) int {
@@ -106,7 +110,7 @@ func (s *KeyService) ExtendKeyByID(keyID uint) (*model.Key, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error get key by ID: %v", keyID)
 	}
-	newKeyDeadlineTime := key.DeadlineTime.Add(time.Minute * 30)
+	newKeyDeadlineTime := key.DeadlineTime.Add(key.Duration)
 	key.DeadlineTime = newKeyDeadlineTime
 
 	err = s.keyRepository.ExtendKey(keyID, newKeyDeadlineTime)

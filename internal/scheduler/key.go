@@ -17,9 +17,9 @@ type KeyScheduler struct {
 	keyService *service.KeyService
 }
 
-func NewScheduler(intervalSeconds time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
+func NewScheduler(duration time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
 	return &KeyScheduler{
-		BotSheduler: BotSheduler{intervalSeconds, b},
+		BotSheduler: BotSheduler{duration, b},
 		keyService:  keyService,
 	}
 }
@@ -92,7 +92,7 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 
 			errOutline := outlineClient.SetDataLimit(key.OutlineKeyId, 0)
 			if errOutline != nil {
-				log.Printf("[ERROR] Can't change datalimit key #%v", key.ID)
+				log.Printf("[ERROR] Can't change datalimit key #%v, err: %v", key.ID, errOutline)
 				continue
 			}
 

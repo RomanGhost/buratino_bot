@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
@@ -18,28 +17,39 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type keyInfo struct {
+	ServerID         uint
+	DeadlineDuration time.Duration
+}
+
 type KeyHandler struct {
-	keyService    *service.KeyService
-	serverService *service.ServerService
+	keyService     *service.KeyService
+	serverService  *service.ServerService
+	keyCreatorInfo map[int64]keyInfo
 }
 
 func NewKeyHandler(keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
+	keyCreatorInfo := make(map[int64]keyInfo)
 	return &KeyHandler{
-		keyService:    keyService,
-		serverService: serverService,
+		keyService:     keyService,
+		serverService:  serverService,
+		keyCreatorInfo: keyCreatorInfo,
 	}
 }
 
 func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswerWithDelete(ctx, b, update)
 
-	data := update.CallbackQuery.Data
-	keyIDString := strings.Split(data, "_")[1]
+	// key Id get
+	callbackData := update.CallbackQuery.Data
+	keyIDString := callbackData[len(data.ExtendKey):] //strings.Split(data, "_")[1]
 
+	// number check
 	keyID, err := strconv.ParseUint(keyIDString, 10, 64)
 	if err != nil {
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
+
 	keyIDUint := uint(keyID)
 
 	isActiveKey := h.keyService.IsActiveKey(keyIDUint)
@@ -48,7 +58,11 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 		return
 	}
 
-	h.keyService.ExtendKeyByID(keyIDUint)
+	_, errExtendKey := h.keyService.ExtendKeyByID(keyIDUint)
+	if errExtendKey != nil {
+		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
 
 	messageText := `Ключик продлен\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -65,9 +79,11 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswerWithDelete(ctx, b, update)
 
+	telegramUser := update.CallbackQuery.From
+
 	// get data from inline
-	data := update.CallbackQuery.Data
-	shortRegionName := strings.Split(data, "_")[1]
+	callbackData := update.CallbackQuery.Data
+	shortRegionName := callbackData[len(data.RegionChoose):] //strings.Split(data, "_")[1]
 
 	// get servers by region
 	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
@@ -95,13 +111,74 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 		return
 	}
 
-	outlineClient := outline.NewOutlineClient(minServer.Access)
+	// переписать для пользователя его данные по серверу
+	h.keyCreatorInfo[telegramUser.ID] = keyInfo{ServerID: minServer.ID}
 
-	h.createKey(ctx, b, update, minServer.ID, outlineClient)
+	zeroTimeKeyboard := data.GetZeroTimeKeyboard()
+	messageText := `Выбери время\!`
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+		Text:        messageText,
+		ReplyMarkup: zeroTimeKeyboard,
+		ParseMode:   "MarkdownV2",
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send notify message %v", err)
+	}
+	// h.createKey(ctx, b, update)
 }
 
-func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update, serverID uint, outlineClient *outline.OutlineClient) {
+func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswerWithDelete(ctx, b, update)
+
 	telegramUser := update.CallbackQuery.From
+
+	// get data from inline
+	callbackData := update.CallbackQuery.Data
+	timeDurationStr := callbackData[len(data.CreateTime):]
+	timeDataDuration, err := data.GetDateFromButton(timeDurationStr)
+	if err != nil {
+		log.Printf("[WARN] Can't parse date from callback: %v\n", err)
+		errorTimeChoice(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	_, exist := h.keyCreatorInfo[telegramUser.ID]
+	if !exist {
+		log.Printf("[WARN] user %d, can't go to next step", telegramUser.ID)
+		errorSkipStep(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	info := h.keyCreatorInfo[telegramUser.ID]
+
+	duration := time.Duration(timeDataDuration.Days) * 24 * time.Hour
+	duration += time.Duration(timeDataDuration.Hours) * time.Hour
+	duration += time.Duration(timeDataDuration.Minutes) * time.Minute
+
+	info.DeadlineDuration = duration
+	h.keyCreatorInfo[telegramUser.ID] = info
+
+	h.createKey(ctx, b, update)
+}
+
+func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update) {
+	telegramUser := update.CallbackQuery.From
+	val, ok := h.keyCreatorInfo[telegramUser.ID]
+	if !ok {
+		// отправить в начало
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	server, err := h.serverService.GetServerByID(val.ServerID)
+	if err != nil {
+		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	outlineClient := outline.NewOutlineClient(server.Access)
 
 	// generate new keys with name
 	key, err := outlineClient.CreateAccessKey()
@@ -121,7 +198,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, serverID, connectionKey, key.Name)
+	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, val.DeadlineDuration)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -223,6 +300,36 @@ func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      chatId,
 		Text:        `Увы ключ совсем заржавел, придется создать новый`,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func errorTimeChoice(ctx context.Context, b *bot.Bot, chatId int64) {
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        `Какая-то проблема с выбором времени, пересоздай ключ`,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func errorSkipStep(ctx context.Context, b *bot.Bot, chatId int64) {
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        `Был пропущен шаг при выборе ключа, придется начать сначала`,
 		ParseMode:   models.ParseModeMarkdown,
 		ReplyMarkup: inlineKeyboard,
 	})
