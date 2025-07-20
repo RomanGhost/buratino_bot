@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	RegionChoose     = "chRegion_"
-	ExtendKey        = "extKey_"
+	RegionChoose     = "chRegion"
+	ExtendKey        = "extKey"
 	CreateKey        = "createKey"
 	InfoAboutProject = "infoProject"
 	OutlineHelp      = "helpOutline"

@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
@@ -38,13 +37,16 @@ func NewKeyHandler(keyService *service.KeyService, serverService *service.Server
 func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	function.InlineAnswerWithDelete(ctx, b, update)
 
-	data := update.CallbackQuery.Data
-	keyIDString := strings.Split(data, "_")[1]
+	// key Id get
+	callbackData := update.CallbackQuery.Data
+	keyIDString := callbackData[len(data.ExtendKey):] //strings.Split(data, "_")[1]
 
+	// number check
 	keyID, err := strconv.ParseUint(keyIDString, 10, 64)
 	if err != nil {
 		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
+
 	keyIDUint := uint(keyID)
 
 	isActiveKey := h.keyService.IsActiveKey(keyIDUint)
@@ -53,7 +55,11 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 		return
 	}
 
-	h.keyService.ExtendKeyByID(keyIDUint)
+	_, errExtendKey := h.keyService.ExtendKeyByID(keyIDUint)
+	if errExtendKey != nil {
+		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
 
 	messageText := `Ключик продлен\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -73,8 +79,8 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	telegramUser := update.CallbackQuery.From
 
 	// get data from inline
-	data := update.CallbackQuery.Data
-	shortRegionName := strings.Split(data, "_")[1]
+	callbackData := update.CallbackQuery.Data
+	shortRegionName := callbackData[len(data.RegionChoose):] //strings.Split(data, "_")[1]
 
 	// get servers by region
 	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
