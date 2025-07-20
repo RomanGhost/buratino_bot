@@ -18,7 +18,8 @@ import (
 )
 
 type keyInfo struct {
-	ServerID uint
+	ServerID         uint
+	DeadlineDuration time.Duration
 }
 
 type KeyHandler struct {
@@ -28,9 +29,11 @@ type KeyHandler struct {
 }
 
 func NewKeyHandler(keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
+	keyCreatorInfo := make(map[int64]keyInfo)
 	return &KeyHandler{
-		keyService:    keyService,
-		serverService: serverService,
+		keyService:     keyService,
+		serverService:  serverService,
+		keyCreatorInfo: keyCreatorInfo,
 	}
 }
 
@@ -109,7 +112,54 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	}
 
 	// переписать для пользователя его данные по серверу
-	h.keyCreatorInfo[telegramUser.ID] = keyInfo{minServer.ID}
+	h.keyCreatorInfo[telegramUser.ID] = keyInfo{ServerID: minServer.ID}
+
+	zeroTimeKeyboard := data.GetZeroTimeKeyboard()
+	messageText := `Выбери время\!`
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+		Text:        messageText,
+		ReplyMarkup: zeroTimeKeyboard,
+		ParseMode:   "MarkdownV2",
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send notify message %v", err)
+	}
+	// h.createKey(ctx, b, update)
+}
+
+func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswerWithDelete(ctx, b, update)
+
+	telegramUser := update.CallbackQuery.From
+
+	// get data from inline
+	callbackData := update.CallbackQuery.Data
+	timeDurationStr := callbackData[len(data.CreateTime):]
+	timeDataDuration, err := data.GetDateFromButton(timeDurationStr)
+	if err != nil {
+		log.Printf("[WARN] Can't parse date from callback: %v\n", err)
+		errorTimeChoice(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	_, exist := h.keyCreatorInfo[telegramUser.ID]
+	if !exist {
+		log.Printf("[WARN] user %d, can't go to next step", telegramUser.ID)
+		errorSkipStep(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	info := h.keyCreatorInfo[telegramUser.ID]
+
+	duration := time.Duration(timeDataDuration.Days) * 24 * time.Hour
+	duration += time.Duration(timeDataDuration.Hours) * time.Hour
+	duration += time.Duration(timeDataDuration.Minutes) * time.Minute
+
+	info.DeadlineDuration = duration
+	h.keyCreatorInfo[telegramUser.ID] = info
+
 	h.createKey(ctx, b, update)
 }
 
@@ -148,7 +198,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	keyDB, err := h.keyService.CreateKey(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name)
+	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, val.DeadlineDuration)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -250,6 +300,36 @@ func errorExpiredKeys(ctx context.Context, b *bot.Bot, chatId int64) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      chatId,
 		Text:        `Увы ключ совсем заржавел, придется создать новый`,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func errorTimeChoice(ctx context.Context, b *bot.Bot, chatId int64) {
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        `Какая-то проблема с выбором времени, пересоздай ключ`,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
+	}
+}
+
+func errorSkipStep(ctx context.Context, b *bot.Bot, chatId int64) {
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        `Был пропущен шаг при выборе ключа, придется начать сначала`,
 		ParseMode:   models.ParseModeMarkdown,
 		ReplyMarkup: inlineKeyboard,
 	})
