@@ -50,6 +50,20 @@ func GetZeroTimeKeyboard() *models.InlineKeyboardMarkup {
 	return timeChooseInlineKeyboard(&keyboardDataParam)
 }
 
+func GetCustomTimeKeyboard(timeDuration *TimeDataDuration) *models.InlineKeyboardMarkup {
+	if timeDuration.Minutes >= MinutesUnit.MaxValue {
+		timeDuration.Minutes = 0
+	}
+	if timeDuration.Hours >= HoursUnit.MaxValue {
+		timeDuration.Hours = 0
+	}
+	if timeDuration.Days >= DaysUnit.MaxValue {
+		timeDuration.Days = 0
+	}
+
+	return timeChooseInlineKeyboard(timeDuration)
+}
+
 func UpdateTimeKeyboard(updateValue uint16, updateTimeUnit *TimeUnit, keyboard *models.InlineKeyboardMarkup) (*models.InlineKeyboardMarkup, error) {
 	keyboardDataParam, err := getDataTimeFromKeyboard(keyboard)
 	if err != nil {

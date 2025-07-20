@@ -114,7 +114,7 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	// переписать для пользователя его данные по серверу
 	h.keyCreatorInfo[telegramUser.ID] = keyInfo{ServerID: minServer.ID}
 
-	zeroTimeKeyboard := data.GetZeroTimeKeyboard()
+	zeroTimeKeyboard := data.GetCustomTimeKeyboard(&data.TimeDataDuration{30, 0, 0})
 	messageText := `Выбери время\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
