@@ -60,7 +60,7 @@ func AboutOutlineButton() models.InlineKeyboardButton {
 
 func GetDateFromButton(dateData string) (*TimeDataDuration, error) {
 	if len(dateData) < 6 {
-		return nil, fmt.Errorf("text is not format: %02d%02d%02d")
+		return nil, fmt.Errorf("text is not format: 02d02d02d")
 	}
 
 	minutesStr := dateData[0:2]
