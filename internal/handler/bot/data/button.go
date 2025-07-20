@@ -53,7 +53,7 @@ func KnowProjectButton() models.InlineKeyboardButton {
 }
 
 func AboutOutlineButton() models.InlineKeyboardButton {
-	button := models.InlineKeyboardButton{Text: "Узнать о проекте", CallbackData: InfoAboutProject}
+	button := models.InlineKeyboardButton{Text: "Узнать об outline", CallbackData: OutlineHelp}
 
 	return button
 }
