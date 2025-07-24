@@ -23,7 +23,7 @@ func NewKeyService(keyRepository *repository.KeyRepository, userRepository *repo
 	}
 }
 
-func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string, deadline time.Duration) (*model.Key, error) {
+func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string, duration time.Duration) (*model.Key, error) {
 	user, err := s.userRepository.GetByTelegramID(userTelegramID)
 	if err != nil {
 		return nil, err
@@ -44,9 +44,10 @@ func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int6
 		OutlineKeyId: outlineKeyId,
 		ServerID:     server.ID,
 		UserID:       user.ID,
-		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(deadline),
+		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(duration),
 		ConnectUrl:   connectURL,
 		KeyName:      keyName,
+		Duration:     duration,
 	}
 
 	err = s.keyRepository.Create(&newKey)

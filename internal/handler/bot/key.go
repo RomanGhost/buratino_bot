@@ -208,7 +208,8 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
-			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n\n`%s`\n\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
+			//Время жизни: %02d:%02d %02d
+			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
 			keyDB.ID, bot.EscapeMarkdown(connectionKey),
 		),
 		ParseMode: "MarkdownV2",
