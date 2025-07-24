@@ -38,7 +38,7 @@ func NewKeyHandler(keyService *service.KeyService, serverService *service.Server
 }
 
 func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswerWithDelete(ctx, b, update)
+	defer function.InlineAnswerWithDelete(ctx, b, update)
 
 	// key Id get
 	callbackData := update.CallbackQuery.Data
@@ -77,7 +77,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 }
 
 func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswerWithDelete(ctx, b, update)
+	defer function.InlineAnswerWithDelete(ctx, b, update)
 
 	telegramUser := update.CallbackQuery.From
 
@@ -130,7 +130,7 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 }
 
 func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswerWithDelete(ctx, b, update)
+	defer function.InlineAnswerWithDelete(ctx, b, update)
 
 	telegramUser := update.CallbackQuery.From
 
