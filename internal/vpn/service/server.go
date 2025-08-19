@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
-	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/repository"
 )
 
 type ServerService struct {

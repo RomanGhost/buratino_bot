@@ -6,8 +6,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/function"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )

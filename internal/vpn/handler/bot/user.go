@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
-	"github.com/RomanGhost/buratino_bot.git/internal/service"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )

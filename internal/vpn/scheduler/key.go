@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
-	"github.com/RomanGhost/buratino_bot.git/internal/service"
+	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 )
 

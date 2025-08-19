@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
 	"gorm.io/gorm"
 )
 

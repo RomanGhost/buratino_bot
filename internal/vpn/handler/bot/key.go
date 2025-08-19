@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/function"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/outline"
-	"github.com/RomanGhost/buratino_bot.git/internal/service"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/function"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )

@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
-	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/repository"
 )
 
 type UserService struct {

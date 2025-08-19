@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
 	"github.com/go-telegram/bot/models"
 )
 

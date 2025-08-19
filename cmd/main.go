@@ -9,12 +9,11 @@ import (
 
 	"fmt"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/database"
-	"github.com/RomanGhost/buratino_bot.git/internal/database/repository"
-	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/handler/bot/data"
-	"github.com/RomanGhost/buratino_bot.git/internal/scheduler"
-	"github.com/RomanGhost/buratino_bot.git/internal/service"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database"
+	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
 	"github.com/go-telegram/bot"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -63,23 +62,7 @@ func main() {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
-	// repository init
-	keyRepository := repository.NewKeyRepository(db)
-	userRepository := repository.NewUserRepository(db)
-	userRoleRepository := repository.NewUserRoleRepository(db)
-	serverRepository := repository.NewServerRepository(db)
-	regionRepository := repository.NewRegionRepository(db)
-
-	// service init
-	keyService := service.NewKeyService(keyRepository, userRepository, serverRepository)
-	userService := service.NewUserService(userRepository, userRoleRepository)
-	regionService := service.NewRegionService(regionRepository)
-	serverService := service.NewServerService(serverRepository)
-
-	// handler init
-	regionHandler := handlerBot.NewRegionHandler(regionService)
-	keyHandler := handlerBot.NewKeyHandler(keyService, serverService)
-	userHandler := handlerBot.NewUserHandler(userService)
+	vpnConfigs := vpn.Initialize(db)
 
 	// initialize bot
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -87,10 +70,10 @@ func main() {
 
 	opts := []bot.Option{
 		// key work
-		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, keyHandler.CreateKeyGetServerInline),
-		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, keyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, regionHandler.GetRegionsInline),
-		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, keyHandler.CreateKeyGetTimeInline),
+		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, vpnConfigs.Handlers.RegionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.ExtendKeyIntline),
+		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetTimeInline),
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
@@ -109,11 +92,10 @@ func main() {
 		panic(err)
 	}
 
-	// scheluder init
-	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, keyService)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, vpnConfigs.Handlers.UserHandler.RegisterUser)
 
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, userHandler.RegisterUser)
-
+	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnConfigs.Services.KeyService)
 	keyScheduler.Run(ctx)
+
 	b.Start(ctx)
 }
