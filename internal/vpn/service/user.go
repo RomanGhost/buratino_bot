@@ -8,14 +8,12 @@ import (
 )
 
 type UserService struct {
-	userRepository     *repository.UserRepository
-	userRoleRepository *repository.UserRoleRepository
+	userRepository *repository.UserRepository
 }
 
-func NewUserService(userRepository *repository.UserRepository, userRoleRepository *repository.UserRoleRepository) *UserService {
+func NewUserService(userRepository *repository.UserRepository) *UserService {
 	return &UserService{
-		userRepository:     userRepository,
-		userRoleRepository: userRoleRepository,
+		userRepository: userRepository,
 	}
 }
 
@@ -28,15 +26,8 @@ func (s *UserService) AddNewUser(telegramID int64) error {
 		return err
 	}
 
-	userRole, err := s.userRoleRepository.GetByRoleName("user")
-	if err != nil {
-		return err
-	}
-
 	newUser := model.User{
 		TelegramID: telegramID,
-		IsActive:   true,
-		UserRole:   *userRole,
 	}
 	s.userRepository.Create(&newUser)
 

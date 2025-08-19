@@ -19,11 +19,10 @@ type handlers struct {
 }
 
 type repositories struct {
-	KeyRepository      *repository.KeyRepository
-	UserRepository     *repository.UserRepository
-	UserRoleRepository *repository.UserRoleRepository
-	ServerRepository   *repository.ServerRepository
-	RegionRepository   *repository.RegionRepository
+	KeyRepository    *repository.KeyRepository
+	UserRepository   *repository.UserRepository
+	ServerRepository *repository.ServerRepository
+	RegionRepository *repository.RegionRepository
 }
 
 type services struct {
@@ -36,14 +35,12 @@ type services struct {
 func initRepository(db *gorm.DB) *repositories {
 	keyRepository := repository.NewKeyRepository(db)
 	userRepository := repository.NewUserRepository(db)
-	userRoleRepository := repository.NewUserRoleRepository(db)
 	serverRepository := repository.NewServerRepository(db)
 	regionRepository := repository.NewRegionRepository(db)
 
 	return &repositories{
 		keyRepository,
 		userRepository,
-		userRoleRepository,
 		serverRepository,
 		regionRepository,
 	}
@@ -51,7 +48,7 @@ func initRepository(db *gorm.DB) *repositories {
 
 func initService(repo *repositories) *services {
 	keyService := service.NewKeyService(repo.KeyRepository, repo.UserRepository, repo.ServerRepository)
-	userService := service.NewUserService(repo.UserRepository, repo.UserRoleRepository)
+	userService := service.NewUserService(repo.UserRepository)
 	regionService := service.NewRegionService(repo.RegionRepository)
 	serverService := service.NewServerService(repo.ServerRepository)
 

@@ -51,6 +51,11 @@ func main() {
 
 	//initialize database
 	dsn := buildDSN()
+	botToken, exist := os.LookupEnv("BOT_API_TOKEN")
+	if !exist {
+		panic("Variable not found")
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
@@ -83,10 +88,6 @@ func main() {
 		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handlerBot.ReduceTimeInline),
 	}
 
-	botToken, exist := os.LookupEnv("BOT_API_TOKEN")
-	if !exist {
-		panic("Variable not found")
-	}
 	b, err := bot.New(botToken, opts...)
 	if err != nil {
 		panic(err)

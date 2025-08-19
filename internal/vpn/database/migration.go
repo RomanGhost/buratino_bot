@@ -8,7 +8,6 @@ import (
 // AutoMigrate creates all tables
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&model.UserRole{},
 		&model.Region{},
 		&model.User{},
 		&model.Server{},
@@ -18,19 +17,6 @@ func AutoMigrate(db *gorm.DB) error {
 
 // SeedData populates initial data
 func SeedData(db *gorm.DB) error {
-	// Seed model.UserRoles
-	userRoles := []model.UserRole{
-		{RoleName: "admin"},
-		{RoleName: "user"},
-		{RoleName: "moderator"},
-	}
-
-	for _, role := range userRoles {
-		if err := db.FirstOrCreate(&role, model.UserRole{RoleName: role.RoleName}).Error; err != nil {
-			return err
-		}
-	}
-
 	// Seed Regions
 	regions := []model.Region{
 		{RegionName: "Netherlands", ShortName: "NL"},
