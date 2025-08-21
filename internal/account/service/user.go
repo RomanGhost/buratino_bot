@@ -28,7 +28,7 @@ func (s *UserService) RegisterUser(telegramID int64, username string) (*model.Us
 		TelegramID:       telegramID,
 		TelegramUsername: username,
 		IsActive:         true,
-		Role:             "USER",
+		Role:             "user",
 		TimezoneOffset:   3 * 60,
 	}
 	err := s.userRepository.Create(&newUser)
