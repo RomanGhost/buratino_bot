@@ -6,14 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// User represents users table
 type User struct {
 	gorm.Model
-	TelegramID int64 `gorm:"index"`
-	IsActive   bool  `gorm:"default:true"`
-	BanTime    *time.Time
-	Role       string `gorm:"size:16;index"`
-	Timezone   time.Location
+	TelegramID       int64 `gorm:"index"`
+	TelegramUsername string
+	IsActive         bool `gorm:"default:true"`
+	BanTime          *time.Time
+	Role             string `gorm:"size:16;index"`
+	TimezoneOffset   int    // смещение от UTC в минутах
 
 	// Associations
 	UserRole UserRole `gorm:"foreignKey:Role;references:RoleName"`

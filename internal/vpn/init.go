@@ -1,6 +1,12 @@
 package vpn
 
 import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/RomanGhost/buratino_bot.git/internal/config"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/repository"
 	handler "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
@@ -15,7 +21,6 @@ type VPNStruct struct {
 type handlers struct {
 	RegionHandler *handler.RegionHandler
 	KeyHandler    *handler.KeyHandler
-	UserHandler   *handler.UserHandler
 }
 
 type repositories struct {
@@ -63,16 +68,32 @@ func initService(repo *repositories) *services {
 func initHandler(s *services) *handlers {
 	regionHandler := handler.NewRegionHandler(s.RegionService)
 	keyHandler := handler.NewKeyHandler(s.KeyService, s.ServerService)
-	userHandler := handler.NewUserHandler(s.UserService)
 
 	return &handlers{
 		regionHandler,
 		keyHandler,
-		userHandler,
 	}
 }
 
-func Initialize(db *gorm.DB) *VPNStruct {
+func buildDSN() string {
+	host := os.Getenv("DATABASE_ADDR")
+	port := os.Getenv("DATABASE_PORT")
+	user := os.Getenv("DATABASE_USER")
+	password := os.Getenv("DATABASE_PASSWORD")
+	dbname := os.Getenv("DATABASE_NAME_VPN")
+
+	return fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		host, user, password, dbname, port,
+	)
+}
+
+func Initialize() *VPNStruct {
+	db, err := config.InitializeDatabase(buildDSN, database.InitDB)
+	if err != nil {
+		log.Fatal("Failed get database: ", err)
+	}
+
 	repos := initRepository(db)
 	servs := initService(repos)
 	handlers := initHandler(servs)

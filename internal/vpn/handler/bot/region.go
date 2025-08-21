@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
