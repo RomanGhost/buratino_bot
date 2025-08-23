@@ -31,6 +31,20 @@ func SeedData(db *gorm.DB) error {
 		}
 	}
 
+	goods := []model.GoodsPrice{
+		{Name: "1m vpn", Price: 20},          // 864 rub/month	0.02rub
+		{Name: "1h vpn", Price: 1000},        // 720 rub/month	1rub
+		{Name: "1d vpn", Price: 20000},       // 600 rub/month	20rub
+		{Name: "1month vpn", Price: 560000},  // 560 rub/month	560rub
+		{Name: "3month vpn", Price: 1600000}, // 533 rub/month	1600rub
+	}
+
+	for _, good := range goods {
+		if err := db.FirstOrCreate(&good, good).Error; err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
