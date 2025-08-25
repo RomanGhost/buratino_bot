@@ -9,6 +9,7 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/telegram/handler"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
@@ -54,8 +55,8 @@ func main() {
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
 
 		// time work
-		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handlerBot.AddTimeInline),
-		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handlerBot.ReduceTimeInline),
+		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handler.AddTimeInline),
+		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handler.ReduceTimeInline),
 	}
 
 	b, err := bot.New(botToken, opts...)

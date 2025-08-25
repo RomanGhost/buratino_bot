@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/pagination"
 	"gorm.io/gorm"
 )
 
@@ -37,4 +38,20 @@ func (r *GoodsRepository) All() ([]model.GoodsPrice, error) {
 	var goods []model.GoodsPrice
 	err := r.db.Find(&goods).Error
 	return goods, err
+}
+
+func (r *GoodsRepository) PaginationAll(p *pagination.Pagination) ([]model.GoodsPrice, error) {
+	var goods []model.GoodsPrice
+
+	// выбираем данные с лимитом и оффсетом
+	err := r.db.
+		Limit(p.Limit).
+		Offset(p.GetOffset()).
+		Find(&goods).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return goods, nil
 }

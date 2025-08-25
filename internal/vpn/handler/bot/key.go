@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
+	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"

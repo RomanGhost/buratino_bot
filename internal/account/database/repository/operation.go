@@ -19,12 +19,18 @@ func (r *OperationRepository) Create(op *model.Operation) error {
 
 func (r *OperationRepository) FindByID(id uint) (*model.Operation, error) {
 	var op model.Operation
-	err := r.db.Preload("Goods").First(&op, id).Error
+	err := r.db.Preload("Goods").Preload("Wallet").First(&op, id).Error
 	return &op, err
 }
 
 func (r *OperationRepository) FindByWalletID(walletID uint) ([]model.Operation, error) {
 	var ops []model.Operation
-	err := r.db.Preload("Goods").Find(&ops, "wallet_id = ?", walletID).Error
+	err := r.db.Preload("Wallet").Find(&ops, "wallet_id = ?", walletID).Error
+	return ops, err
+}
+
+func (r *OperationRepository) FindByGoodsID(goodID uint) ([]model.Operation, error) {
+	var ops []model.Operation
+	err := r.db.Preload("Goods").Find(&ops, "goods_id = ?", goodID).Error
 	return ops, err
 }
