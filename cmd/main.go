@@ -11,7 +11,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/handler"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
-	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
+	vpnHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
 	"github.com/go-telegram/bot"
 	"github.com/joho/godotenv"
@@ -51,8 +51,8 @@ func main() {
 		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetServerInline),
 		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetTimeInline),
 
-		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, handlerBot.InfoAboutInline),
-		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, handlerBot.HelpOutlineIntructionInline),
+		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, vpnHandlerBot.InfoAboutInline),
+		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, vpnHandlerBot.HelpOutlineIntructionInline),
 
 		// time work
 		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handler.AddTimeInline),
@@ -64,7 +64,9 @@ func main() {
 		panic(err)
 	}
 
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, accountConfigs.Handlers.UserHandler.RegisterUser)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.START, bot.MatchTypeExact, accountConfigs.Handlers.UserHandler.RegisterUser)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.PAY, bot.MatchTypePrefix, accountConfigs.Handlers.WalletHandler.PayAmount)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountConfigs.Handlers.WalletHandler.GetBalace)
 
 	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnConfigs.Services.KeyService)
 	keyScheduler.Run(ctx)

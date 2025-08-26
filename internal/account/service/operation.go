@@ -13,13 +13,20 @@ type OperationService struct {
 	goodsService        *GoodsService
 }
 
-func NewOperationService(operationRepository *repository.OperationRepository) *OperationService {
+func NewOperationService(operationRepository *repository.OperationRepository, walletService *WalletService, goodsService *GoodsService) *OperationService {
 	return &OperationService{
 		operationRepository: operationRepository,
+		walletService:       walletService,
+		goodsService:        goodsService,
 	}
 }
 
-func (s *OperationService) CreateOperation(goodsName string, userID uint) (*model.Operation, error) {
+func (s *OperationService) TopUpAccount(userID uint, integerPart, fractionalPart uint64) (*model.Operation, error) {
+	count := integerPart*1000 + fractionalPart*10
+	return s.CreateOperation(userID, "Пополнение", count)
+}
+
+func (s *OperationService) CreateOperation(userID uint, goodsName string, count uint64) (*model.Operation, error) {
 	g, err := s.goodsService.GetByName(goodsName)
 	if err != nil {
 		return nil, fmt.Errorf("error get goods: %s", err)
@@ -30,7 +37,7 @@ func (s *OperationService) CreateOperation(goodsName string, userID uint) (*mode
 		return nil, fmt.Errorf("can't find wallet")
 	}
 
-	addWalletError := s.walletService.Sub(wallet.ID, uint(g.Price))
+	addWalletError := s.walletService.Sub(wallet.ID, g.Price*int64(count))
 	if addWalletError != nil {
 		return nil, fmt.Errorf("error sub of wallet: %s", addWalletError)
 	}
@@ -38,6 +45,7 @@ func (s *OperationService) CreateOperation(goodsName string, userID uint) (*mode
 	newOperation := model.Operation{
 		WalletID: wallet.ID,
 		GoodsID:  g.ID,
+		Count:    count,
 	}
 	createOperationError := s.operationRepository.Create(&newOperation)
 	if createOperationError != nil {

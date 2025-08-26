@@ -15,6 +15,19 @@ func NewWalletService(walletRepository *repository.WalletRepository) *WalletServ
 	return &WalletService{walletRepository}
 }
 
+func (s *WalletService) CreateWallet(userID uint) (*model.Wallet, error) {
+	newWallet := model.Wallet{
+		UserID:     userID,
+		MoneyCount: 0,
+	}
+
+	err := s.walletRepository.Create(&newWallet)
+	if err != nil {
+		return nil, fmt.Errorf("error create wallet")
+	}
+	return &newWallet, nil
+}
+
 func (s *WalletService) GetByUserID(userID uint) (*model.Wallet, error) {
 	w, err := s.walletRepository.FindByUserID(userID)
 	if err != nil {
@@ -24,25 +37,32 @@ func (s *WalletService) GetByUserID(userID uint) (*model.Wallet, error) {
 	return w, nil
 }
 
-func (s *WalletService) Add(walletID uint, amount uint) error {
+func (s *WalletService) Add(walletID uint, amount uint64) error {
 	w, err := s.walletRepository.FindByID(walletID)
 	if err != nil {
 		return fmt.Errorf("error to get wallet with id: %d, error: %s", walletID, err)
 	}
-	w.MoneyCount += int(amount)
+	w.MoneyCount += int64(amount)
 
 	return nil
 }
 
-func (s *WalletService) Sub(walletID uint, amount uint) error {
+func (s *WalletService) Sub(walletID uint, amount int64) error {
 	w, err := s.walletRepository.FindByID(walletID)
 	if err != nil {
 		return fmt.Errorf("error to get wallet with id: %d, error: %s", walletID, err)
 	}
-	if w.MoneyCount < int(amount) {
+
+	if w.MoneyCount < amount {
 		return fmt.Errorf("wallet balance less that amount: %d", amount)
 	}
-	w.MoneyCount -= int(amount)
+
+	w.MoneyCount -= amount
+
+	updateWalletError := s.walletRepository.Update(w)
+	if updateWalletError != nil {
+		return fmt.Errorf("wallet update error: %s", updateWalletError)
+	}
 
 	return nil
 }

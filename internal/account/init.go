@@ -19,40 +19,60 @@ type AccountStruct struct {
 }
 
 type handlers struct {
-	UserHandler *botHandler.UserHandler
+	UserHandler   *botHandler.UserHandler
+	WalletHandler *botHandler.WalletHandler
 }
 
 type services struct {
-	UserService *service.UserService
+	UserService      *service.UserService
+	WalletService    *service.WalletService
+	GoodsService     *service.GoodsService
+	OperationService *service.OperationService
 }
 
 type repositories struct {
-	UserRepository     *repository.UserRepository
-	UserRoleRepository *repository.UserRoleRepository
+	WalletRepository    *repository.WalletRepository
+	UserRepository      *repository.UserRepository
+	UserRoleRepository  *repository.UserRoleRepository
+	GoodsRepository     *repository.GoodsRepository
+	OperationRepository *repository.OperationRepository
 }
 
 func initRepository(db *gorm.DB) *repositories {
+	walletRepository := repository.NewWalletRepository(db)
 	userRepository := repository.NewUserRepository(db)
 	userRoleRepository := repository.NewUserRoleRepository(db)
+	goodsRepository := repository.NewGoodsRepository(db)
+	operationRepository := repository.NewOperationRepository(db)
 
 	return &repositories{
-		UserRepository:     userRepository,
-		UserRoleRepository: userRoleRepository,
+		UserRepository:      userRepository,
+		UserRoleRepository:  userRoleRepository,
+		WalletRepository:    walletRepository,
+		OperationRepository: operationRepository,
+		GoodsRepository:     goodsRepository,
 	}
 }
 
 func initService(repo *repositories) *services {
-	userService := service.NewUserService(repo.UserRepository, repo.UserRoleRepository)
+	walletService := service.NewWalletService(repo.WalletRepository)
+	userService := service.NewUserService(repo.UserRepository, repo.UserRoleRepository, walletService)
+	goodsService := service.NewGoodsService(repo.GoodsRepository)
+	operationService := service.NewOperationService(repo.OperationRepository, walletService, goodsService)
 	return &services{
-		UserService: userService,
+		UserService:      userService,
+		OperationService: operationService,
+		GoodsService:     goodsService,
+		WalletService:    walletService,
 	}
 }
 
 func initHandler(s *services) *handlers {
 	userHandler := botHandler.NewUserHandler(s.UserService)
-
+	walletHandler := botHandler.NewWalletHandler(s.WalletService, s.OperationService, s.UserService)
 	return &handlers{
-		UserHandler: userHandler,
+		UserHandler:   userHandler,
+		WalletHandler: walletHandler,
 	}
 }
 

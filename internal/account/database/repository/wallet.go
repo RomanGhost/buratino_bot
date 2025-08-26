@@ -19,7 +19,7 @@ func (r *WalletRepository) Create(wallet *model.Wallet) error {
 
 func (r *WalletRepository) FindByID(id uint) (*model.Wallet, error) {
 	var wallet model.Wallet
-	err := r.db.Preload("User").Preload("History").First(&wallet, id).Error
+	err := r.db.Preload("History").First(&wallet, id).Error
 	return &wallet, err
 }
 

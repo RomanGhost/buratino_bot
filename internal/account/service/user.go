@@ -10,12 +10,14 @@ import (
 type UserService struct {
 	userRepository     *repository.UserRepository
 	userRoleRepository *repository.UserRoleRepository
+	walletService      *WalletService
 }
 
-func NewUserService(userRepository *repository.UserRepository, userRoleRepository *repository.UserRoleRepository) *UserService {
+func NewUserService(userRepository *repository.UserRepository, userRoleRepository *repository.UserRoleRepository, walletService *WalletService) *UserService {
 	return &UserService{
 		userRepository:     userRepository,
 		userRoleRepository: userRoleRepository,
+		walletService:      walletService,
 	}
 }
 
@@ -35,7 +37,20 @@ func (s *UserService) RegisterUser(telegramID int64, username string) (*model.Us
 	if err != nil {
 		return nil, fmt.Errorf("error create user: %s", err)
 	}
+
+	_, createWalletError := s.walletService.CreateWallet(newUser.ID)
+	if createWalletError != nil {
+		return nil, fmt.Errorf("error create wallet for user: %d, error: %s", newUser.ID, createWalletError)
+	}
 	return &newUser, nil
+}
+
+func (s *UserService) GetUserByTelegramID(telegramID int64) (*model.User, error) {
+	u, err := s.userRepository.FindByTelegramID(telegramID)
+	if err != nil {
+		return nil, fmt.Errorf("error get user by telegramID: %d", telegramID)
+	}
+	return u, nil
 }
 
 func (s *UserService) ExistUserByTelegramID(telegramID int64) bool {
