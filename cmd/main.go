@@ -13,6 +13,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
 	vpnHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
+	"github.com/gin-gonic/gin"
 	"github.com/go-telegram/bot"
 	"github.com/joho/godotenv"
 )
@@ -74,5 +75,10 @@ func main() {
 	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnConfigs.Services.KeyService)
 	keyScheduler.Run(ctx)
 
-	b.Start(ctx)
+	go b.Start(ctx)
+
+	r := gin.Default()
+	r.POST("operation/create", accountConfigs.Handlers.OperationHandlerWeb.CreateOperation)
+
+	r.Run(":8080")
 }

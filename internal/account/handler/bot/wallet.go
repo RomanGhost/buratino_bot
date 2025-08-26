@@ -32,12 +32,14 @@ func (h *WalletHandler) GetBalace(ctx context.Context, b *bot.Bot, update *model
 	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
 	if err != nil {
 		log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
+		function.UnknownUser(ctx, b, update.Message.Chat.ID)
 		return // TODO register
 	}
 
 	wallet, err := h.walletService.GetByUserID(user.ID)
 	if err != nil {
 		log.Printf("Error get wallet by userID: %d", user.ID)
+		function.UnknownUser(ctx, b, update.Message.Chat.ID)
 	}
 
 	_, sendMessageError := b.SendMessage(ctx, &bot.SendMessageParams{
@@ -59,7 +61,8 @@ func (h *WalletHandler) PayAmount(ctx context.Context, b *bot.Bot, update *model
 	matches := re.FindStringSubmatch(messageText)
 	if matches == nil {
 		log.Printf("[WARN] Incorect amount: %v", messageText)
-		return // TODO ERROR
+		function.UnknownUser(ctx, b, update.Message.Chat.ID)
+		return
 	}
 
 	integerPartStr := matches[1]
@@ -128,33 +131,3 @@ func (h *WalletHandler) PaymentHandler(ctx context.Context, b *bot.Bot, update *
 		// update.Message.SuccessfulPayment.
 	}
 }
-
-/*
-	telegramUser := update.Message.From
-	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
-	if err != nil {
-		log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
-		return // TODO register
-	}
-
-	integerPartStr := matches[1]
-	integerPart, _ := strconv.ParseUint(integerPartStr, 10, 64)
-	fractionalPartStr := matches[3]
-	fractionalPart, _ := strconv.ParseUint(fractionalPartStr, 10, 64)
-
-	operation, err := h.operationService.TopUpAccount(user.ID, integerPart, fractionalPart)
-	if err != nil {
-		log.Printf("[ERROR] Can't top up account for user: %d, Error: %s", telegramUser.ID, err)
-		return
-	}
-
-	_, sendMessageError := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text: fmt.Sprintf(
-			"Счет успешно пополнен %6.2f🪙!", float64(operation.Count)/1000.0,
-		),
-	})
-	if sendMessageError != nil {
-		log.Printf("[WARN] Error send message %v", err)
-	}
-*/

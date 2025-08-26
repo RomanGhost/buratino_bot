@@ -32,12 +32,12 @@ func SeedData(db *gorm.DB) error {
 	}
 
 	goods := []model.GoodsPrice{
-		{Name: "1m vpn", Price: 5},          // 216 rub/month	0.005 rub
-		{Name: "1h vpn", Price: 250},        // 180 rub/month	0.25 rub
-		{Name: "1d vpn", Price: 5000},       // 150 rub/month	5 rub
-		{Name: "1month vpn", Price: 140000}, // 140 rub/month	140 rub
-		{Name: "3month vpn", Price: 400000}, // 133 rub/month	400 rub
-		{Name: "Пополнение", Price: -1},     // 0.001(10^-3) rub
+		{Name: "1m vpn", Price: 5},    // 216 rub/month	0.005 rub
+		{Name: "1h vpn", Price: 250},  // 180 rub/month	0.25 rub
+		{Name: "1d vpn", Price: 5000}, // 150 rub/month	5 rub
+		// {Name: "1month vpn", Price: 140000}, // 140 rub/month	140 rub
+		// {Name: "3month vpn", Price: 400000}, // 133 rub/month	400 rub
+		{Name: "Пополнение", Price: -1}, // 0.001(10^-3) rub
 	}
 
 	for _, good := range goods {
