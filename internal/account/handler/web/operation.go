@@ -1,10 +1,10 @@
 package web
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account/service"
+	apperror "github.com/RomanGhost/buratino_bot.git/internal/app/error"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,23 +30,30 @@ func NewOperationHandler(operationService *service.OperationService) *OperationH
 
 func (h *OperationHandler) CreateOperation(c *gin.Context) {
 	var input Data
-
 	// Привязываем JSON к структуре Data
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Логика обработки (например, печать операций)
 	var resultAmount int64
 	for _, op := range input.Operations {
-		operation, err := h.operationService.CreateOperation(input.UserID, op.OperationName, op.Count)
+		operation, err := h.operationService.CreateOperation(input.UserID, op.OperationName, uint64(op.Count))
 		if err != nil {
-			log.Printf("[WARN] Can't create operation for user: %d, err: %s", input.UserID, err)
+			if appErr, ok := err.(*apperror.AppError); ok {
+				c.JSON(appErr.Code, gin.H{"error": appErr.Message})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "неизвестная ошибка"})
+			}
+			return
 		}
-		resultAmount += int64(operation.Count) * operation.Goods.Price
 
+		// используем operation только если оно != nil
+		if operation != nil {
+			resultAmount += int64(operation.Count) * operation.Goods.Price
+		}
 	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Данные получены успешно",
 		"user":    input.UserID,

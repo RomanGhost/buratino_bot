@@ -17,7 +17,7 @@ func NewUserService(userRepository *repository.UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) AddNewUser(telegramID int64) error {
+func (s *UserService) AddNewUser(telegramID int64, authUserID uint) error {
 	user, err := s.userRepository.GetByTelegramID(telegramID)
 	if user != nil {
 		return fmt.Errorf("user exist")
@@ -28,6 +28,7 @@ func (s *UserService) AddNewUser(telegramID int64) error {
 
 	newUser := model.User{
 		TelegramID: telegramID,
+		AuthID:     authUserID,
 	}
 	s.userRepository.Create(&newUser)
 

@@ -161,6 +161,7 @@ func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, upd
 	h.keyCreatorInfo[telegramUser.ID] = info
 
 	h.createKey(ctx, b, update)
+
 }
 
 func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -217,7 +218,6 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
 	}
-
 }
 
 func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyID uint) {

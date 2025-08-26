@@ -7,7 +7,8 @@ import (
 // User represents users table
 type User struct {
 	gorm.Model
-	TelegramID int64 `gorm:"index" json:"telegram_id"`
+	AuthID     uint
+	TelegramID int64 `gorm:"index"`
 
-	Keys []Key `gorm:"foreignKey:UserID" json:"keys,omitempty"`
+	Keys []Key `gorm:"foreignKey:UserID"`
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database/model"
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database/repository"
+	apperror "github.com/RomanGhost/buratino_bot.git/internal/app/error"
 )
 
 type OperationService struct {
@@ -29,17 +30,17 @@ func (s *OperationService) TopUpAccount(userID uint, integerPart, fractionalPart
 func (s *OperationService) CreateOperation(userID uint, goodsName string, count uint64) (*model.Operation, error) {
 	g, err := s.goodsService.GetByName(goodsName)
 	if err != nil {
-		return nil, fmt.Errorf("error get goods: %s", err)
+		return nil, apperror.NotFound("Goods not found", err)
 	}
 
 	wallet, err := s.walletService.GetByUserID(userID)
 	if err != nil {
-		return nil, fmt.Errorf("can't find wallet")
+		return nil, apperror.NotFound("Can't find wallet", err)
 	}
 
 	addWalletError := s.walletService.Sub(wallet.ID, g.Price*int64(count))
 	if addWalletError != nil {
-		return nil, fmt.Errorf("error sub of wallet: %s", addWalletError)
+		return nil, apperror.BadRequest("Account is over", err)
 	}
 
 	newOperation := model.Operation{

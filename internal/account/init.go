@@ -10,7 +10,7 @@ import (
 	botHandler "github.com/RomanGhost/buratino_bot.git/internal/account/handler/bot"
 	webHandler "github.com/RomanGhost/buratino_bot.git/internal/account/handler/web"
 	"github.com/RomanGhost/buratino_bot.git/internal/account/service"
-	"github.com/RomanGhost/buratino_bot.git/internal/config"
+	"github.com/RomanGhost/buratino_bot.git/internal/app/config"
 	"gorm.io/gorm"
 )
 
