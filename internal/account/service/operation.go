@@ -22,7 +22,7 @@ func NewOperationService(operationRepository *repository.OperationRepository, wa
 }
 
 func (s *OperationService) TopUpAccount(userID uint, integerPart, fractionalPart uint64) (*model.Operation, error) {
-	count := integerPart*1000 + fractionalPart*10
+	count := integerPart*1000 + fractionalPart
 	return s.CreateOperation(userID, "Пополнение", count)
 }
 

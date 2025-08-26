@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account/service"
+	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -52,13 +53,6 @@ func (h *WalletHandler) GetBalace(ctx context.Context, b *bot.Bot, update *model
 
 // /pay <amount>
 func (h *WalletHandler) PayAmount(ctx context.Context, b *bot.Bot, update *models.Update) {
-	telegramUser := update.Message.From
-	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
-	if err != nil {
-		log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
-		return // TODO register
-	}
-
 	messageText := update.Message.Text
 
 	re := regexp.MustCompile(`(\d+)([,.](\d{1,2}))?`)
@@ -72,8 +66,81 @@ func (h *WalletHandler) PayAmount(ctx context.Context, b *bot.Bot, update *model
 	integerPart, _ := strconv.ParseUint(integerPartStr, 10, 64)
 	fractionalPartStr := matches[3]
 	fractionalPart, _ := strconv.ParseUint(fractionalPartStr, 10, 64)
+	starCount := function.CountStar(integerPart, fractionalPart)
 
 	// TODO Get payment from telegram
+	_, sendInvoiceError := b.SendInvoice(ctx, &bot.SendInvoiceParams{
+		ChatID:          update.Message.Chat.ID,
+		MessageThreadID: 0,
+		Title:           "Покупка монет",
+		Description:     fmt.Sprintf("Пополнить кошелек %s🪙", matches[0]),
+		Payload:         fmt.Sprintf("payload_%v", matches[0]),
+		ProviderToken:   "",
+		Currency:        "XTR",
+		Prices: []models.LabeledPrice{
+			{Label: "pay_matches[0]", Amount: int(starCount)},
+		},
+	})
+
+	if sendInvoiceError != nil {
+		log.Printf("[ERROR] error sending invoice: %s\n", sendInvoiceError)
+		return
+	}
+}
+
+func (h *WalletHandler) PaymentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	log.Printf("[DEBUG] Run PaymentHandler")
+	if update.PreCheckoutQuery != nil {
+		log.Printf("[DEBUG] get PreCheckoutQuery for invoce payload: %s\n", update.PreCheckoutQuery.InvoicePayload)
+
+		b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
+			PreCheckoutQueryID: update.PreCheckoutQuery.ID,
+			OK:                 true,
+			ErrorMessage:       "",
+		})
+		return
+	}
+
+	if update.Message != nil {
+		log.Printf("[DEBUG] Payment was successful with payment payload: %+v\n", update.Message.SuccessfulPayment)
+		telegramUser := update.Message.From
+		user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
+		if err != nil {
+			log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
+			return // TODO register
+		}
+		integerPart, fractionalPart := function.GetMoneyFromStar(update.Message.SuccessfulPayment.TotalAmount)
+		operation, err := h.operationService.TopUpAccount(user.ID, integerPart, fractionalPart)
+		if err != nil {
+			log.Printf("[ERROR] Can't top up account for user: %d, Error: %s", telegramUser.ID, err)
+			return
+		}
+
+		_, sendMessageError := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text: fmt.Sprintf(
+				"Счет успешно пополнен %6.2f🪙!", float64(operation.Count)/1000.0,
+			),
+		})
+		if sendMessageError != nil {
+			log.Printf("[WARN] Error send message %v", err)
+		}
+		// update.Message.SuccessfulPayment.
+	}
+}
+
+/*
+	telegramUser := update.Message.From
+	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
+	if err != nil {
+		log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
+		return // TODO register
+	}
+
+	integerPartStr := matches[1]
+	integerPart, _ := strconv.ParseUint(integerPartStr, 10, 64)
+	fractionalPartStr := matches[3]
+	fractionalPart, _ := strconv.ParseUint(fractionalPartStr, 10, 64)
 
 	operation, err := h.operationService.TopUpAccount(user.ID, integerPart, fractionalPart)
 	if err != nil {
@@ -90,5 +157,4 @@ func (h *WalletHandler) PayAmount(ctx context.Context, b *bot.Bot, update *model
 	if sendMessageError != nil {
 		log.Printf("[WARN] Error send message %v", err)
 	}
-
-}
+*/

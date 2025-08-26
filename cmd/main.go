@@ -57,6 +57,9 @@ func main() {
 		// time work
 		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handler.AddTimeInline),
 		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handler.ReduceTimeInline),
+
+		//payment !!!!!
+		bot.WithDefaultHandler(accountConfigs.Handlers.WalletHandler.PaymentHandler),
 	}
 
 	b, err := bot.New(botToken, opts...)
