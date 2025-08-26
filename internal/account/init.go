@@ -14,18 +14,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type AccountStruct struct {
-	Handlers *handlers
-	Services *services
-}
+// type AccountStruct struct {
+// 	Handlers *handlers
+// 	Services *services
+// }
 
-type handlers struct {
+type Handlers struct {
 	UserHandler         *botHandler.UserHandler
 	WalletHandler       *botHandler.WalletHandler
 	OperationHandlerWeb *webHandler.OperationHandler
 }
 
-type services struct {
+type Services struct {
 	UserService      *service.UserService
 	WalletService    *service.WalletService
 	GoodsService     *service.GoodsService
@@ -56,12 +56,12 @@ func initRepository(db *gorm.DB) *repositories {
 	}
 }
 
-func initService(repo *repositories) *services {
+func InitService(repo *repositories) *Services {
 	walletService := service.NewWalletService(repo.WalletRepository)
 	userService := service.NewUserService(repo.UserRepository, repo.UserRoleRepository, walletService)
 	goodsService := service.NewGoodsService(repo.GoodsRepository)
 	operationService := service.NewOperationService(repo.OperationRepository, walletService, goodsService)
-	return &services{
+	return &Services{
 		UserService:      userService,
 		OperationService: operationService,
 		GoodsService:     goodsService,
@@ -69,11 +69,11 @@ func initService(repo *repositories) *services {
 	}
 }
 
-func initHandler(s *services) *handlers {
+func InitHandler(s *Services) *Handlers {
 	userHandler := botHandler.NewUserHandler(s.UserService)
 	walletHandler := botHandler.NewWalletHandler(s.WalletService, s.OperationService, s.UserService)
 	operationHandlerWeb := webHandler.NewOperationHandler(s.OperationService)
-	return &handlers{
+	return &Handlers{
 		UserHandler:         userHandler,
 		WalletHandler:       walletHandler,
 		OperationHandlerWeb: operationHandlerWeb,
@@ -93,18 +93,13 @@ func buildDSN() string {
 	)
 }
 
-func Initialize() *AccountStruct {
+func InitializeRepository() *repositories {
 	db, err := config.InitializeDatabase(buildDSN, database.InitDB)
 	if err != nil {
 		log.Fatal("Failed get database: ", err)
 	}
 
 	repos := initRepository(db)
-	servs := initService(repos)
-	handlers := initHandler(servs)
 
-	return &AccountStruct{
-		Handlers: handlers,
-		Services: servs,
-	}
+	return repos
 }

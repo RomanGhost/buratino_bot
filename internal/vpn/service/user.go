@@ -17,6 +17,10 @@ func NewUserService(userRepository *repository.UserRepository) *UserService {
 	}
 }
 
+func (s *UserService) GetUserByTelegramID(telegramID int64) (*model.User, error) {
+	return s.userRepository.GetByTelegramID(telegramID)
+}
+
 func (s *UserService) AddNewUser(telegramID int64, authUserID uint) error {
 	user, err := s.userRepository.GetByTelegramID(telegramID)
 	if user != nil {

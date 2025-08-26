@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	accountService "github.com/RomanGhost/buratino_bot.git/internal/account/service"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
@@ -23,17 +24,21 @@ type keyInfo struct {
 }
 
 type KeyHandler struct {
-	keyService     *service.KeyService
-	serverService  *service.ServerService
-	keyCreatorInfo map[int64]keyInfo
+	userService             *service.UserService
+	keyService              *service.KeyService
+	serverService           *service.ServerService
+	accountOperationService *accountService.OperationService
+	keyCreatorInfo          map[int64]keyInfo
 }
 
-func NewKeyHandler(keyService *service.KeyService, serverService *service.ServerService) *KeyHandler {
+func NewKeyHandler(userService *service.UserService, keyService *service.KeyService, serverService *service.ServerService, accountOperationService *accountService.OperationService) *KeyHandler {
 	keyCreatorInfo := make(map[int64]keyInfo)
 	return &KeyHandler{
-		keyService:     keyService,
-		serverService:  serverService,
-		keyCreatorInfo: keyCreatorInfo,
+		userService:             userService,
+		keyService:              keyService,
+		serverService:           serverService,
+		accountOperationService: accountOperationService,
+		keyCreatorInfo:          keyCreatorInfo,
 	}
 }
 
@@ -161,7 +166,6 @@ func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, upd
 	h.keyCreatorInfo[telegramUser.ID] = info
 
 	h.createKey(ctx, b, update)
-
 }
 
 func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -170,6 +174,13 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	if !ok {
 		// отправить в начало
 		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	resultDuration := h.makeRequest(telegramUser.ID, val.DeadlineDuration)
+	if resultDuration == 0 {
+		// Вернуть ошибку баланса пользователю и не выполнять действий
+		function.BalanceOver(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -199,7 +210,7 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	connectionKey := key.AccessURL + "&prefix=POST%20"
 
-	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, val.DeadlineDuration)
+	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, resultDuration)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -218,6 +229,47 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
 	}
+}
+
+func (h *KeyHandler) makeRequest(telegramID int64, timeDuration time.Duration) time.Duration {
+	user, err := h.userService.GetUserByTelegramID(telegramID)
+	if err != nil {
+		return 0
+	}
+
+	dayDuration := 24 * time.Hour
+	monthDuration := 30 * dayDuration
+	minutes := (timeDuration % time.Hour) / time.Minute
+	hours := (timeDuration % dayDuration) / time.Hour
+	days := (timeDuration % monthDuration) / dayDuration
+	months := timeDuration / monthDuration
+	var res time.Duration
+
+	_, minError := h.accountOperationService.CreateOperation(user.AuthID, "1m vpn", uint64(minutes))
+	if minError != nil {
+		return 0
+	}
+	res += minutes * time.Minute
+
+	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, "1h vpn", uint64(hours))
+	if hourError != nil {
+		return res
+	}
+	res += hours * time.Hour
+
+	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, "1d vpn", uint64(days))
+	if dayError != nil {
+		return res
+	}
+	res += days * dayDuration
+
+	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, "1month vpn", uint64(months))
+	if monthError != nil {
+		return res
+	}
+	res += months * monthDuration
+
+	return timeDuration
 }
 
 func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyID uint) {

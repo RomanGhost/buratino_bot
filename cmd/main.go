@@ -13,7 +13,6 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
 	vpnHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
-	"github.com/gin-gonic/gin"
 	"github.com/go-telegram/bot"
 	"github.com/joho/godotenv"
 )
@@ -38,8 +37,14 @@ func main() {
 		panic("Variable not found")
 	}
 
-	vpnConfigs := vpn.Initialize()
-	accountConfigs := account.Initialize()
+	vpnRepositories := vpn.InitializeRepository()
+	vpnServices := vpn.InitService(vpnRepositories)
+
+	accountRepositories := account.InitializeRepository()
+	accountServices := account.InitService(accountRepositories)
+
+	accountHandlers := account.InitHandler(accountServices)
+	vpnHandlers := vpn.InitHandler(vpnServices, accountServices)
 
 	// initialize bot
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -47,10 +52,10 @@ func main() {
 
 	opts := []bot.Option{
 		// key work
-		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, vpnConfigs.Handlers.RegionHandler.GetRegionsInline),
-		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetServerInline),
-		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, vpnConfigs.Handlers.KeyHandler.CreateKeyGetTimeInline),
+		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, vpnHandlers.RegionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnHandlers.KeyHandler.ExtendKeyIntline),
+		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.CreateKeyGetServerInline),
+		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, vpnHandlers.KeyHandler.CreateKeyGetTimeInline),
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, vpnHandlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, vpnHandlerBot.HelpOutlineIntructionInline),
@@ -60,7 +65,7 @@ func main() {
 		bot.WithCallbackQueryDataHandler(data.TimeReduce, bot.MatchTypePrefix, handler.ReduceTimeInline),
 
 		//payment !!!!!
-		bot.WithDefaultHandler(accountConfigs.Handlers.WalletHandler.PaymentHandler),
+		bot.WithDefaultHandler(accountHandlers.WalletHandler.PaymentHandler),
 	}
 
 	b, err := bot.New(botToken, opts...)
@@ -68,17 +73,12 @@ func main() {
 		panic(err)
 	}
 
-	b.RegisterHandler(bot.HandlerTypeMessageText, data.START, bot.MatchTypeExact, accountConfigs.Handlers.UserHandler.RegisterUser)
-	b.RegisterHandler(bot.HandlerTypeMessageText, data.PAY, bot.MatchTypePrefix, accountConfigs.Handlers.WalletHandler.PayAmount)
-	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountConfigs.Handlers.WalletHandler.GetBalace)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.START, bot.MatchTypeExact, accountHandlers.UserHandler.RegisterUser)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.PAY, bot.MatchTypePrefix, accountHandlers.WalletHandler.PayAmount)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountHandlers.WalletHandler.GetBalace)
 
-	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnConfigs.Services.KeyService)
+	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnServices.KeyService)
 	keyScheduler.Run(ctx)
 
-	go b.Start(ctx)
-
-	r := gin.Default()
-	r.POST("operation/create", accountConfigs.Handlers.OperationHandlerWeb.CreateOperation)
-
-	r.Run(":8080")
+	b.Start(ctx)
 }

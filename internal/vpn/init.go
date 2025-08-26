@@ -5,22 +5,25 @@ import (
 	"log"
 	"os"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/config"
+	"github.com/RomanGhost/buratino_bot.git/internal/account"
+	"github.com/RomanGhost/buratino_bot.git/internal/app/config"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/repository"
-	handler "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
+	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"gorm.io/gorm"
 )
 
-type VPNStruct struct {
-	Handlers *handlers
-	Services *services
+type Handlers struct {
+	RegionHandler *handlerBot.RegionHandler
+	KeyHandler    *handlerBot.KeyHandler
 }
 
-type handlers struct {
-	RegionHandler *handler.RegionHandler
-	KeyHandler    *handler.KeyHandler
+type Services struct {
+	KeyService    *service.KeyService
+	UserService   *service.UserService
+	RegionService *service.RegionService
+	ServerService *service.ServerService
 }
 
 type repositories struct {
@@ -28,13 +31,6 @@ type repositories struct {
 	UserRepository   *repository.UserRepository
 	ServerRepository *repository.ServerRepository
 	RegionRepository *repository.RegionRepository
-}
-
-type services struct {
-	KeyService    *service.KeyService
-	UserService   *service.UserService
-	RegionService *service.RegionService
-	ServerService *service.ServerService
 }
 
 func initRepository(db *gorm.DB) *repositories {
@@ -51,13 +47,13 @@ func initRepository(db *gorm.DB) *repositories {
 	}
 }
 
-func initService(repo *repositories) *services {
+func InitService(repo *repositories) *Services {
 	keyService := service.NewKeyService(repo.KeyRepository, repo.UserRepository, repo.ServerRepository)
 	userService := service.NewUserService(repo.UserRepository)
 	regionService := service.NewRegionService(repo.RegionRepository)
 	serverService := service.NewServerService(repo.ServerRepository)
 
-	return &services{
+	return &Services{
 		keyService,
 		userService,
 		regionService,
@@ -65,11 +61,11 @@ func initService(repo *repositories) *services {
 	}
 }
 
-func initHandler(s *services) *handlers {
-	regionHandler := handler.NewRegionHandler(s.RegionService)
-	keyHandler := handler.NewKeyHandler(s.KeyService, s.ServerService)
+func InitHandler(s *Services, as *account.Services) *Handlers {
+	regionHandler := handlerBot.NewRegionHandler(s.RegionService)
+	keyHandler := handlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
 
-	return &handlers{
+	return &Handlers{
 		regionHandler,
 		keyHandler,
 	}
@@ -88,18 +84,13 @@ func buildDSN() string {
 	)
 }
 
-func Initialize() *VPNStruct {
+func InitializeRepository() *repositories {
 	db, err := config.InitializeDatabase(buildDSN, database.InitDB)
 	if err != nil {
 		log.Fatal("Failed get database: ", err)
 	}
 
 	repos := initRepository(db)
-	servs := initService(repos)
-	handlers := initHandler(servs)
 
-	return &VPNStruct{
-		Services: servs,
-		Handlers: handlers,
-	}
+	return repos
 }
