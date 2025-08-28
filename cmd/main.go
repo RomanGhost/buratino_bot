@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account"
+	accountHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/account/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/handler"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
@@ -26,6 +27,28 @@ import (
 - [ ] Возможность продлить написав боту - да
 */
 
+func initHandlerVPN(s *vpn.Services, as *account.Services) *vpn.Handlers {
+	regionHandler := vpnHandlerBot.NewRegionHandler(s.RegionService)
+	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
+
+	return &vpn.Handlers{
+		RegionHandler: regionHandler,
+		KeyHandler:    keyHandler,
+	}
+}
+
+func initHandlerAccount(s *account.Services, vpnS *vpn.Services) *account.Handlers {
+	userHandler := accountHandlerBot.NewUserHandler(s.UserService, vpnS.UserService)
+	walletHandler := accountHandlerBot.NewWalletHandler(s.WalletService, s.OperationService, s.UserService)
+	goodsHandler := accountHandlerBot.NewGoodsHandler(s.GoodsService)
+
+	return &account.Handlers{
+		UserHandler:   userHandler,
+		WalletHandler: walletHandler,
+		GoodsHandler:  goodsHandler,
+	}
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -43,8 +66,8 @@ func main() {
 	accountRepositories := account.InitializeRepository()
 	accountServices := account.InitService(accountRepositories)
 
-	accountHandlers := account.InitHandler(accountServices)
-	vpnHandlers := vpn.InitHandler(vpnServices, accountServices)
+	accountHandlers := initHandlerAccount(accountServices, vpnServices)
+	vpnHandlers := initHandlerVPN(vpnServices, accountServices)
 
 	// initialize bot
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -66,6 +89,9 @@ func main() {
 
 		//payment !!!!!
 		bot.WithDefaultHandler(accountHandlers.WalletHandler.PaymentHandler),
+
+		// lookup
+		bot.WithMiddlewares(accountHandlers.UserHandler.MiddleWareLookup),
 	}
 
 	b, err := bot.New(botToken, opts...)
@@ -76,6 +102,7 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.START, bot.MatchTypeExact, accountHandlers.UserHandler.RegisterUser)
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PAY, bot.MatchTypePrefix, accountHandlers.WalletHandler.PayAmount)
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountHandlers.WalletHandler.GetBalace)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.PRICES, bot.MatchTypeExact, accountHandlers.GoodsHandler.GetPrices)
 
 	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnServices.KeyService)
 	keyScheduler.Run(ctx)

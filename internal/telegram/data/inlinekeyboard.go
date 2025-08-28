@@ -118,8 +118,8 @@ func timeChooseInlineKeyboard(keyboardTime *TimeDataDuration) *models.InlineKeyb
 	//createTime_mmhhdd
 	*/
 	lineMin := []models.InlineKeyboardButton{TimeMinutesReduceButton(10), TimeMinutesReduceButton(5), InfoTimeButton(keyboardTime.Minutes, &MinutesUnit), TimeMinutesAddButton(5), TimeMinutesAddButton(10)}
-	lineHour := []models.InlineKeyboardButton{TimeHoursReduceButton(3), TimeHoursReduceButton(1), InfoTimeButton(keyboardTime.Hours, &HoursUnit), TimeHoursAddButton(1), TimeHoursAddButton(3)}
-	lineDays := []models.InlineKeyboardButton{TimeDaysReduceButton(1), InfoTimeButton(keyboardTime.Days, &DaysUnit), TimeDaysAddButton(1)}
+	lineHour := []models.InlineKeyboardButton{TimeHoursReduceButton(4), TimeHoursReduceButton(1), InfoTimeButton(keyboardTime.Hours, &HoursUnit), TimeHoursAddButton(1), TimeHoursAddButton(4)}
+	lineDays := []models.InlineKeyboardButton{TimeDaysReduceButton(10), TimeDaysReduceButton(1), InfoTimeButton(keyboardTime.Days, &DaysUnit), TimeDaysAddButton(1), TimeDaysAddButton(10)}
 	createButtonLine := []models.InlineKeyboardButton{CreateDateButton(keyboardTime)}
 
 	keyboard := models.InlineKeyboardMarkup{

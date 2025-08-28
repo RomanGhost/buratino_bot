@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 	"time"
 
 	accountService "github.com/RomanGhost/buratino_bot.git/internal/account/service"
+	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
@@ -91,27 +90,8 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	shortRegionName := callbackData[len(data.RegionChoose):] //strings.Split(data, "_")[1]
 
 	// get servers by region
-	servers, err := h.serverService.GetServersByRegionShortName(shortRegionName)
-	if err != nil || len(servers) == 0 {
-		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	// chose server with min keys of region
-	minCount := math.MaxInt
-	var minServer model.Server
-	for _, server := range servers {
-		val := h.keyService.CountKeysOfServer(server.ID)
-		if val == -1 {
-			continue
-		}
-		if minCount > val {
-			minCount = val
-			minServer = server
-		}
-	}
-
-	if minServer.ID == 0 {
+	minServer, err := h.serverService.GetNotLoadedServer(shortRegionName)
+	if err != nil {
 		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
@@ -120,6 +100,7 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	h.keyCreatorInfo[telegramUser.ID] = keyInfo{ServerID: minServer.ID}
 
 	zeroTimeKeyboard := data.GetCustomTimeKeyboard(&data.TimeDataDuration{Minutes: 30, Hours: 0, Days: 0})
+
 	messageText := `Выбери время\!`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
@@ -131,13 +112,21 @@ func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, u
 	if err != nil {
 		log.Printf("[WARN] Error send notify message %v", err)
 	}
-	// h.createKey(ctx, b, update)
 }
 
 func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	defer function.InlineAnswerWithDelete(ctx, b, update)
 
 	telegramUser := update.CallbackQuery.From
+
+	_, exist := h.keyCreatorInfo[telegramUser.ID]
+	if !exist {
+		log.Printf("[WARN] user %d, can't go to next step", telegramUser.ID)
+		errorSkipStep(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	info := h.keyCreatorInfo[telegramUser.ID]
 
 	// get data from inline
 	callbackData := update.CallbackQuery.Data
@@ -148,15 +137,6 @@ func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, upd
 		errorTimeChoice(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
-
-	_, exist := h.keyCreatorInfo[telegramUser.ID]
-	if !exist {
-		log.Printf("[WARN] user %d, can't go to next step", telegramUser.ID)
-		errorSkipStep(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	info := h.keyCreatorInfo[telegramUser.ID]
 
 	duration := time.Duration(timeDataDuration.Days) * 24 * time.Hour
 	duration += time.Duration(timeDataDuration.Hours) * time.Hour
@@ -237,39 +217,66 @@ func (h *KeyHandler) makeRequest(telegramID int64, timeDuration time.Duration) t
 		return 0
 	}
 
-	dayDuration := 24 * time.Hour
-	monthDuration := 30 * dayDuration
-	minutes := (timeDuration % time.Hour) / time.Minute
-	hours := (timeDuration % dayDuration) / time.Hour
-	days := (timeDuration % monthDuration) / dayDuration
-	months := timeDuration / monthDuration
+	cd := timework.ConcrateDuration(timeDuration)
 	var res time.Duration
 
-	_, minError := h.accountOperationService.CreateOperation(user.AuthID, "1m vpn", uint64(minutes))
+	_, minError := h.accountOperationService.CreateOperation(user.AuthID, "1m vpn", uint64(cd.Minutes))
 	if minError != nil {
 		return 0
 	}
-	res += minutes * time.Minute
+	res += cd.Minutes * time.Minute
 
-	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, "1h vpn", uint64(hours))
+	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, "1h vpn", uint64(cd.Hours))
 	if hourError != nil {
 		return res
 	}
-	res += hours * time.Hour
+	res += cd.Hours * time.Hour
 
-	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, "1d vpn", uint64(days))
+	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, "1d vpn", uint64(cd.Days))
 	if dayError != nil {
 		return res
 	}
-	res += days * dayDuration
+	res += cd.Days * timework.DayDuration
 
-	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, "1month vpn", uint64(months))
+	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, "1month vpn", uint64(cd.Months))
 	if monthError != nil {
 		return res
 	}
-	res += months * monthDuration
+	res += cd.Months * timework.MonthDuration
 
 	return timeDuration
+}
+
+func (h *KeyHandler) countPrice(telegramID int64, timeDuration time.Duration) int64 {
+
+	var resPrice int64
+	cd := timework.ConcrateDuration(timeDuration)
+
+	minPrice, minError := h.accountOperationService.GetPrice("1m vpn", uint64(cd.Minutes))
+	if minError != nil {
+		return 0
+	}
+	resPrice += minPrice
+
+	hourPrice, hourError := h.accountOperationService.GetPrice("1h vpn", uint64(cd.Hours))
+	if hourError != nil {
+		return resPrice
+	}
+	resPrice += hourPrice
+
+	dayPrice, dayError := h.accountOperationService.GetPrice("1d vpn", uint64(cd.Days))
+	if dayError != nil {
+		return resPrice
+	}
+	resPrice += dayPrice
+
+	monthPrice, monthError := h.accountOperationService.GetPrice("1month vpn", uint64(cd.Months))
+	if monthError != nil {
+		return resPrice
+	}
+	resPrice += monthPrice
+
+	return resPrice
 }
 
 func SendNotifyAboutDeadline(ctx context.Context, b *bot.Bot, chatID int64, keyID uint) {
@@ -392,14 +399,15 @@ func errorSkipStep(ctx context.Context, b *bot.Bot, chatId int64) {
 }
 
 func formatDuration(timeDuration time.Duration) string {
-	dayDuration := 24 * time.Hour
-	minutes := (timeDuration % time.Hour) / time.Minute
-	hours := (timeDuration % dayDuration) / time.Hour
-	days := timeDuration / dayDuration
+	cd := timework.ConcrateDuration(timeDuration)
 
-	result := fmt.Sprintf("%02d:%02d", hours, minutes)
-	if days > 0 {
-		result = fmt.Sprintf("%v %dд", result, days)
+	result := fmt.Sprintf("%02d:%02d", cd.Hours, cd.Minutes)
+	if cd.Days > 0 {
+		result = fmt.Sprintf("%dд %s", cd.Days, result)
 	}
+	if cd.Months > 0 {
+		result = fmt.Sprintf("%dм %s", cd.Months, result)
+	}
+
 	return result
 }

@@ -31,7 +31,7 @@ type TimeUnit struct {
 var (
 	MinutesUnit = TimeUnit{"мин", "m", 60}
 	HoursUnit   = TimeUnit{"ч", "h", 24}
-	DaysUnit    = TimeUnit{"д", "d", 31}
+	DaysUnit    = TimeUnit{"д", "d", 91}
 )
 
 func CreateKeyButton() models.InlineKeyboardButton {

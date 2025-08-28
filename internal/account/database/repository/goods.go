@@ -24,9 +24,9 @@ func (r *GoodsRepository) FindByID(id uint) (*model.GoodsPrice, error) {
 	return &goods, err
 }
 
-func (r *GoodsRepository) FindByName(name string) (*model.GoodsPrice, error) {
+func (r *GoodsRepository) FindBySysName(name string) (*model.GoodsPrice, error) {
 	var goods model.GoodsPrice
-	err := r.db.First(&goods, "name = ?", name).Error
+	err := r.db.First(&goods, "sys_name = ?", name).Error
 	return &goods, err
 }
 

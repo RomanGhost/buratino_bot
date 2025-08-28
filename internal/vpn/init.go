@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/account"
 	"github.com/RomanGhost/buratino_bot.git/internal/app/config"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/repository"
@@ -51,23 +50,13 @@ func InitService(repo *repositories) *Services {
 	keyService := service.NewKeyService(repo.KeyRepository, repo.UserRepository, repo.ServerRepository)
 	userService := service.NewUserService(repo.UserRepository)
 	regionService := service.NewRegionService(repo.RegionRepository)
-	serverService := service.NewServerService(repo.ServerRepository)
+	serverService := service.NewServerService(repo.ServerRepository, keyService)
 
 	return &Services{
 		keyService,
 		userService,
 		regionService,
 		serverService,
-	}
-}
-
-func InitHandler(s *Services, as *account.Services) *Handlers {
-	regionHandler := handlerBot.NewRegionHandler(s.RegionService)
-	keyHandler := handlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
-
-	return &Handlers{
-		regionHandler,
-		keyHandler,
 	}
 }
 

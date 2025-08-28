@@ -21,11 +21,32 @@ func NewUserService(userRepository *repository.UserRepository, userRoleRepositor
 	}
 }
 
+func (s *UserService) GetOrCreateUser(telegramID int64, username string) (*model.User, error) {
+	exist := s.ExistUserByTelegramID(telegramID)
+	if exist {
+		u, err := s.userRepository.FindByTelegramID(telegramID)
+		if err != nil {
+			return nil, fmt.Errorf("error get user: %s", err)
+		}
+
+		if u.TelegramUsername != username {
+			u.TelegramUsername = username
+			updateUserError := s.userRepository.Update(u)
+			if updateUserError != nil {
+				return nil, fmt.Errorf("can't update user: %s", updateUserError)
+			}
+		}
+		return u, nil
+	}
+	return s.RegisterUser(telegramID, username)
+}
+
 func (s *UserService) RegisterUser(telegramID int64, username string) (*model.User, error) {
 	exist := s.ExistUserByTelegramID(telegramID)
 	if exist {
-		return nil, fmt.Errorf("error user exist")
+		return nil, fmt.Errorf("user exist")
 	}
+
 	newUser := model.User{
 		TelegramID:       telegramID,
 		TelegramUsername: username,

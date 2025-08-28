@@ -7,8 +7,7 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database"
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database/repository"
-	botHandler "github.com/RomanGhost/buratino_bot.git/internal/account/handler/bot"
-	webHandler "github.com/RomanGhost/buratino_bot.git/internal/account/handler/web"
+	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/account/handler/bot"
 	"github.com/RomanGhost/buratino_bot.git/internal/account/service"
 	"github.com/RomanGhost/buratino_bot.git/internal/app/config"
 	"gorm.io/gorm"
@@ -20,9 +19,9 @@ import (
 // }
 
 type Handlers struct {
-	UserHandler         *botHandler.UserHandler
-	WalletHandler       *botHandler.WalletHandler
-	OperationHandlerWeb *webHandler.OperationHandler
+	UserHandler   *handlerBot.UserHandler
+	WalletHandler *handlerBot.WalletHandler
+	GoodsHandler  *handlerBot.GoodsHandler
 }
 
 type Services struct {
@@ -66,17 +65,6 @@ func InitService(repo *repositories) *Services {
 		OperationService: operationService,
 		GoodsService:     goodsService,
 		WalletService:    walletService,
-	}
-}
-
-func InitHandler(s *Services) *Handlers {
-	userHandler := botHandler.NewUserHandler(s.UserService)
-	walletHandler := botHandler.NewWalletHandler(s.WalletService, s.OperationService, s.UserService)
-	operationHandlerWeb := webHandler.NewOperationHandler(s.OperationService)
-	return &Handlers{
-		UserHandler:         userHandler,
-		WalletHandler:       walletHandler,
-		OperationHandlerWeb: operationHandlerWeb,
 	}
 }
 

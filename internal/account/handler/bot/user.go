@@ -7,29 +7,49 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account/service"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
+	vpnService "github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
 type UserHandler struct {
-	userService *service.UserService
+	userService    *service.UserService
+	userVPNService *vpnService.UserService
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
+func NewUserHandler(userService *service.UserService, userVPNService *vpnService.UserService) *UserHandler {
 	return &UserHandler{
-		userService: userService,
+		userService:    userService,
+		userVPNService: userVPNService,
 	}
 }
 
-// first message
+func (h *UserHandler) MiddleWareLookup(next bot.HandlerFunc) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		h.lookupUserChange(update)
+		next(ctx, b, update)
+	}
+}
+
+// check userChange
+func (h *UserHandler) lookupUserChange(update *models.Update) {
+	if update != nil && update.Message != nil && update.Message.From != nil {
+		telegramUser := update.Message.From
+		log.Printf("[INFO] Regist user: %v, ID: %v", telegramUser.Username, telegramUser.ID)
+
+		user, err := h.userService.GetOrCreateUser(telegramUser.ID, telegramUser.Username)
+		if err != nil {
+			log.Printf("[WARN] user register error: %v", err)
+		} else {
+			h.userVPNService.AddNewUser(telegramUser.ID, user.ID)
+		}
+	}
+}
+
+// stsrt message
 func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.Message.From
-	log.Printf("[INFO] Regist user: %v, ID: %v", telegramUser.Username, telegramUser.ID)
-
-	_, err := h.userService.RegisterUser(telegramUser.ID, telegramUser.Username)
-	if err != nil {
-		log.Printf("[WARN] user register error: %v", err)
-	}
+	h.lookupUserChange(update)
 
 	inlineKeyboard := data.CreateKeyboard(
 		[]models.InlineKeyboardButton{data.CreateKeyButton()},
@@ -46,6 +66,6 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 		ParseMode:   models.ParseModeMarkdown,
 	})
 	if sendMessageError != nil {
-		log.Printf("[WARN] Error send message %v", err)
+		log.Printf("[WARN] Error send message %v", sendMessageError)
 	}
 }

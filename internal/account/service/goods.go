@@ -18,8 +18,8 @@ func NewGoodsService(goodsRepository *repository.GoodsRepository) *GoodsService 
 	}
 }
 
-func (s *GoodsService) GetByName(goodsName string) (*model.GoodsPrice, error) {
-	g, err := s.goodsRepository.FindByName(goodsName)
+func (s *GoodsService) GetBySysName(goodsName string) (*model.GoodsPrice, error) {
+	g, err := s.goodsRepository.FindBySysName(goodsName)
 	if err != nil {
 		return nil, fmt.Errorf("error get goods: %s", err)
 	}
@@ -30,7 +30,7 @@ func (s *GoodsService) GetByName(goodsName string) (*model.GoodsPrice, error) {
 	return g, nil
 }
 
-func (s *GoodsService) GetAll(pageNum int, limit int) ([]model.GoodsPrice, error) {
+func (s *GoodsService) GetAll(pageNum, limit int) ([]model.GoodsPrice, error) {
 	pages := pagination.Pagination{
 		Page:  pageNum,
 		Limit: limit,
