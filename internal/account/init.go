@@ -73,11 +73,12 @@ func buildDSN() string {
 	port := os.Getenv("DATABASE_PORT")
 	user := os.Getenv("DATABASE_USER")
 	password := os.Getenv("DATABASE_PASSWORD")
-	dbname := os.Getenv("DATABASE_NAME_ACCOUNT")
+	dbname := os.Getenv("DATABASE_NAME")
+	schema := os.Getenv("DATABASE_SCHEMA_ACCOUNT")
 
 	return fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		host, user, password, dbname, port,
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable options='-c search_path=%s'",
+		host, user, password, dbname, port, schema,
 	)
 }
 

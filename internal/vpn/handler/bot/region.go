@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
+	vpnTelegram "github.com/RomanGhost/buratino_bot.git/internal/vpn/telegram/function"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -31,7 +31,7 @@ func (h *RegionHandler) GetRegionsInline(ctx context.Context, b *bot.Bot, update
 		return
 	}
 
-	inlineKeyboard := data.GetRegionsInlineKeyboard(regions)
+	inlineKeyboard := vpnTelegram.GetRegionsInlineKeyboard(regions)
 
 	messageText := `Выбери регион, из которого нужно принести ключик`
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
