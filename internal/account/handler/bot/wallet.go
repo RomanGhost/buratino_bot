@@ -104,7 +104,7 @@ func (h *WalletHandler) PaymentHandler(ctx context.Context, b *bot.Bot, update *
 		return
 	}
 
-	if update.Message != nil {
+	if update.Message != nil && update.Message.SuccessfulPayment != nil {
 		log.Printf("[DEBUG] Payment was successful with payment payload: %+v\n", update.Message.SuccessfulPayment)
 		telegramUser := update.Message.From
 		user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
@@ -112,6 +112,7 @@ func (h *WalletHandler) PaymentHandler(ctx context.Context, b *bot.Bot, update *
 			log.Printf("[WARN] Unknown user: %v", telegramUser.Username)
 			return // TODO register
 		}
+
 		integerPart, fractionalPart := function.GetMoneyFromStar(update.Message.SuccessfulPayment.TotalAmount)
 		operation, err := h.operationService.TopUpAccount(user.ID, integerPart, fractionalPart)
 		if err != nil {
