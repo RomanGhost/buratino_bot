@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/RomanGhost/buratino_bot.git/internal/account/database/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // AutoMigrate creates all tables
@@ -41,7 +42,10 @@ func SeedData(db *gorm.DB) error {
 	}
 
 	for _, good := range goods {
-		if err := db.FirstOrCreate(&good, model.GoodsPrice{SysName: good.SysName, Name: good.Name, Price: good.Price}).Error; err != nil {
+		if err := db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sys_name"}},
+			DoUpdates: clause.AssignmentColumns([]string{"name", "price"}),
+		}).Create(&good).Error; err != nil {
 			return err
 		}
 	}
