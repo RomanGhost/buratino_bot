@@ -41,7 +41,7 @@ func SeedData(db *gorm.DB) error {
 	}
 
 	for _, good := range goods {
-		if err := db.FirstOrCreate(&good, good).Error; err != nil {
+		if err := db.FirstOrCreate(&good, model.GoodsPrice{SysName: good.SysName, Name: good.Name, Price: good.Price}).Error; err != nil {
 			return err
 		}
 	}
