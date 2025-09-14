@@ -62,6 +62,19 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 		return
 	}
 
+	telegramUser := update.CallbackQuery.From
+	keyVal, err := h.keyService.GetByID(keyIDUint)
+	if err != nil {
+		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	}
+
+	resultDuration := h.makeRequest(telegramUser.ID, keyVal.Duration)
+	if resultDuration == 0 {
+		// Вернуть ошибку баланса пользователю и не выполнять действий
+		function.BalanceOver(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
 	_, errExtendKey := h.keyService.ExtendKeyByID(keyIDUint)
 	if errExtendKey != nil {
 		errorExpiredKeys(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)

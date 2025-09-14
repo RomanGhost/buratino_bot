@@ -106,6 +106,15 @@ func (s *KeyService) IsActiveKey(keyID uint) bool {
 	return true
 }
 
+func (s *KeyService) GetByID(keyID uint) (*model.Key, error) {
+	key, err := s.keyRepository.GetByID(keyID)
+	if err != nil {
+		return nil, fmt.Errorf("error get key by ID: %v", keyID)
+	}
+
+	return key, nil
+}
+
 func (s *KeyService) ExtendKeyByID(keyID uint) (*model.Key, error) {
 	key, err := s.keyRepository.GetByID(keyID)
 	if err != nil {
