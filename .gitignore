@@ -1,0 +1,4 @@
+.env
+compose.yml
+Dockerfile
+dump-*.sql
