@@ -75,10 +75,13 @@ func (s *KeyScheduler) notifyExpired(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
+
 			delta := key.DeadlineTime.Sub(nowTime)
-			if delta < s.timeInterval {
+			deadlinePercent := time.Duration(float64(key.Duration)*0.1)
+			if delta < deadlinePercent {
 				continue
 			}
+
 			val, ok := deadlineKeyData[delta-s.timeInterval]
 			if !ok {
 				deadlineKeyData[delta-s.timeInterval] = []notify{}
