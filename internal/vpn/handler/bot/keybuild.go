@@ -56,13 +56,13 @@ func (h *KeyHandler) GetProviderSendTime(timeFunc func(ctx context.Context, b *b
 
 		//get server
 		if val.ShortRegionID == "" || val.ProviderID == "" {
-			forgotUserDataError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+			errorForgotUserData(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 			return
 		}
 
 		minServer, err := h.serverService.GetNotLoadedByRegionAndProviderServer(val.ShortRegionID, val.ProviderID)
 		if err != nil {
-			serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+			errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 			return
 		}
 
@@ -81,7 +81,7 @@ func (h *KeyHandler) GetTimeToCreateKey(createKeyFunc func(ctx context.Context, 
 
 		val, ok := h.keyCreatorInfo[telegramUser.ID]
 		if !ok {
-			forgotUserDataError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+			errorForgotUserData(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 			return
 		}
 

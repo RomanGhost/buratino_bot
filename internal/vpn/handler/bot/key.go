@@ -11,7 +11,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -46,7 +46,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	// number check
 	keyID, err := strconv.ParseUint(keyIDString, 10, 64)
 	if err != nil {
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 
 	keyIDUint := uint(keyID)
@@ -60,7 +60,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	telegramUser := update.CallbackQuery.From
 	keyVal, err := h.keyService.GetByID(keyIDUint)
 	if err != nil {
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 
 	resultDuration := h.makeRequest(telegramUser.ID, keyVal.Duration)
@@ -95,7 +95,7 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 	val, ok := h.keyCreatorInfo[telegramUser.ID]
 	if !ok {
 		// отправить в начало
-		forgotUserDataError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorForgotUserData(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	server, err := h.serverService.GetServerByID(val.ServerID)
 	if err != nil {
-		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 	key, err := outlineClient.CreateAccessKey()
 	if err != nil {
 		log.Printf("[WARN] create outline key: %v\n", err)
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 	err = outlineClient.RenameAccessKey(key.ID, key.Name)
 	if err != nil {
 		log.Printf("[WARN] Can't rename outline key: %v\n", err)
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -258,7 +258,21 @@ func CreateKeyInlineShutdown(ctx context.Context, b *bot.Bot, mes models.MaybeIn
 	}
 }
 
-func forgotUserDataError(ctx context.Context, b *bot.Bot, chatId int64) {
+func formatDuration(timeDuration time.Duration) string {
+	cd := timework.ConcrateDuration(timeDuration)
+
+	result := fmt.Sprintf("%02d:%02d", cd.Hours, cd.Minutes)
+	if cd.Days > 0 {
+		result = fmt.Sprintf("%dд %s", cd.Days, result)
+	}
+	if cd.Months > 0 {
+		result = fmt.Sprintf("%dм %s", cd.Months, result)
+	}
+
+	return result
+}
+
+func errorForgotUserData(ctx context.Context, b *bot.Bot, chatId int64) {
 	log.Printf("[WARN] Error get values from map")
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatId,
@@ -270,7 +284,7 @@ func forgotUserDataError(ctx context.Context, b *bot.Bot, chatId int64) {
 	}
 }
 
-func serverError(ctx context.Context, b *bot.Bot, chatId int64) {
+func errorServer(ctx context.Context, b *bot.Bot, chatId int64) {
 	log.Printf("[WARN] Error get server")
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatId,
@@ -282,7 +296,7 @@ func serverError(ctx context.Context, b *bot.Bot, chatId int64) {
 	}
 }
 
-func missKeyError(ctx context.Context, b *bot.Bot, chatId int64) {
+func errorMissKey(ctx context.Context, b *bot.Bot, chatId int64) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: chatId,
 		Text: `🏃‍♂️💨 Пока я к тебе бежал, *ключик куда\-то выскользнул*\.\.\. 🔑😱  
@@ -325,33 +339,4 @@ func errorTimeChoice(ctx context.Context, b *bot.Bot, chatId int64) {
 	if err != nil {
 		log.Printf("[WARN] Error send info error message %v", err)
 	}
-}
-
-func errorSkipStep(ctx context.Context, b *bot.Bot, chatId int64) {
-	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
-
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        `Был пропущен шаг при выборе ключа, придется начать сначала`,
-		ParseMode:   models.ParseModeMarkdown,
-		ReplyMarkup: inlineKeyboard,
-	})
-
-	if err != nil {
-		log.Printf("[WARN] Error send info error message %v", err)
-	}
-}
-
-func formatDuration(timeDuration time.Duration) string {
-	cd := timework.ConcrateDuration(timeDuration)
-
-	result := fmt.Sprintf("%02d:%02d", cd.Hours, cd.Minutes)
-	if cd.Days > 0 {
-		result = fmt.Sprintf("%dд %s", cd.Days, result)
-	}
-	if cd.Months > 0 {
-		result = fmt.Sprintf("%dм %s", cd.Months, result)
-	}
-
-	return result
 }

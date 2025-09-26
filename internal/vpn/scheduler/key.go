@@ -7,7 +7,7 @@ import (
 	"time"
 
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider/outline"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 )
@@ -77,7 +77,7 @@ func (s *KeyScheduler) notifyExpired(ctx context.Context) {
 		default:
 
 			delta := key.DeadlineTime.Sub(nowTime)
-			deadlinePercent := time.Duration(float64(key.Duration)*0.1)
+			deadlinePercent := time.Duration(float64(key.Duration) * 0.1)
 			if delta < deadlinePercent {
 				continue
 			}
