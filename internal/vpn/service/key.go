@@ -23,7 +23,7 @@ func NewKeyService(keyRepository *repository.KeyRepository, userRepository *repo
 	}
 }
 
-func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string, duration time.Duration) (*model.Key, error) {
+func (s *KeyService) CreateKeyWithDeadline(KeyID int, userTelegramID int64, serverID uint, connectURL string, keyName string, duration time.Duration) (*model.Key, error) {
 	user, err := s.userRepository.GetByTelegramID(userTelegramID)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int6
 	}
 
 	newKey := model.Key{
-		OutlineKeyId: outlineKeyId,
+		KeyID: KeyID,
 		ServerID:     server.ID,
 		UserID:       user.ID,
 		DeadlineTime: time.Now().UTC().Truncate(time.Minute).Add(duration),
@@ -58,8 +58,8 @@ func (s *KeyService) CreateKeyWithDeadline(outlineKeyId int, userTelegramID int6
 	return &newKey, nil
 }
 
-func (s *KeyService) CreateDefaultKey(outlineKeyId int, userTelegramID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
-	return s.CreateKeyWithDeadline(outlineKeyId, userTelegramID, serverID, connectURL, keyName, time.Duration(30*time.Minute))
+func (s *KeyService) CreateDefaultKey(KeyID int, userTelegramID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
+	return s.CreateKeyWithDeadline(KeyID, userTelegramID, serverID, connectURL, keyName, time.Duration(30*time.Minute))
 }
 
 func (s *KeyService) CountKeysOfServer(serverID uint) int {
