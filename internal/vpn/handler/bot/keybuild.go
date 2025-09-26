@@ -101,5 +101,7 @@ func (h *KeyHandler) GetTimeToCreateKey(createKeyFunc func(ctx context.Context, 
 
 		val.DeadlineDuration = duration
 		h.keyCreatorInfo[telegramUser.ID] = val
+
+		createKeyFunc(ctx, b, update)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	vpnTelegram "github.com/RomanGhost/buratino_bot.git/internal/vpn/telegram/function"
 	"github.com/go-telegram/bot"
@@ -23,7 +22,7 @@ func NewProviderHandler(providerService *service.ProviderService) *ProviderHandl
 
 // function for get Provider of server
 func (h *ProviderHandler) GetProvidersInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	function.InlineAnswerWithDelete(ctx, b, update)
+	// function.InlineAnswerWithDelete(ctx, b, update)
 
 	providers, err := h.providerService.GetProviders()
 	if err != nil {
@@ -38,7 +37,6 @@ func (h *ProviderHandler) GetProvidersInline(ctx context.Context, b *bot.Bot, up
 		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
 		Text:        messageText,
 		ReplyMarkup: inlineKeyboard,
-		ParseMode:   "MarkdownV2",
 	})
 
 	if err != nil {

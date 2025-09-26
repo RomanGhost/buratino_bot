@@ -8,24 +8,14 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider/data"
 )
 
 // Структуры для API ответов
-type AccessKey struct {
-	ID        int    `json:"id,string"`
-	Name      string `json:"name,omitempty"`
-	Password  string `json:"password"`
-	Port      int    `json:"port"`
-	Method    string `json:"method"`
-	AccessURL string `json:"accessUrl"`
-	DataLimit *struct {
-		Bytes int64 `json:"bytes"`
-	} `json:"dataLimit,omitempty"`
-	UsedBytes int64 `json:"usedBytes,omitempty"`
-}
 
 type AccessKeysResponse struct {
-	AccessKeys []AccessKey `json:"accessKeys"`
+	AccessKeys []data.AccessKey `json:"accessKeys"`
 }
 
 type ServerInfo struct {
@@ -96,7 +86,7 @@ func (c *OutlineClient) makeRequest(method, endpoint string, body interface{}) (
 }
 
 // Получение списка всех ключей
-func (c *OutlineClient) GetAccessKeys() ([]AccessKey, error) {
+func (c *OutlineClient) GetAccessKeys() ([]data.AccessKey, error) {
 	resp, err := c.makeRequest("GET", "/access-keys", nil)
 	if err != nil {
 		return nil, err
@@ -118,7 +108,7 @@ func (c *OutlineClient) GetAccessKeys() ([]AccessKey, error) {
 }
 
 // Создание нового ключа
-func (c *OutlineClient) CreateAccessKey() (*AccessKey, error) {
+func (c *OutlineClient) CreateAccessKey() (*data.AccessKey, error) {
 	resp, err := c.makeRequest("POST", "/access-keys", nil)
 	if err != nil {
 		return nil, err
@@ -129,7 +119,7 @@ func (c *OutlineClient) CreateAccessKey() (*AccessKey, error) {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
-	var key AccessKey
+	var key data.AccessKey
 	if err := json.NewDecoder(resp.Body).Decode(&key); err != nil {
 		return nil, fmt.Errorf("ошибка декодирования ответа: %v", err)
 	}
@@ -146,11 +136,32 @@ func (c *OutlineClient) DeleteAccessKey(keyID int) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
 	return nil
+}
+
+// Создание нового ключа и изменение его имени
+func (c *OutlineClient) CreateKey(name string) (*data.KeyConnectData, error) {
+	key, err := c.CreateAccessKey()
+	if err != nil {
+		return nil, fmt.Errorf("error create key: %v", err)
+	}
+
+	key.Name = fmt.Sprintf("%s-%d", name, time.Now().UTC().Unix())
+	err = c.RenameAccessKey(key.ID, key.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error rename key: %v", err)
+	}
+
+	connectionKey := key.AccessURL + "&prefix=POST%20"
+	return &data.KeyConnectData{
+		ID:          key.ID,
+		Name:        key.Name,
+		ConnectData: connectionKey,
+	}, nil
 }
 
 // Переименование ключа
@@ -186,7 +197,7 @@ func (c *OutlineClient) SetDataLimit(keyID int, limitBytes int64) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -203,7 +214,7 @@ func (c *OutlineClient) RemoveDataLimit(keyID int) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -218,7 +229,7 @@ func (c *OutlineClient) GetServerInfo() (*ServerInfo, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -238,7 +249,7 @@ func (c *OutlineClient) GetDataUsage() (map[string]int64, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 

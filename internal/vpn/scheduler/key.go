@@ -142,9 +142,9 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			// TODO edit to change url
 			outlineClient := outline.NewOutlineClient(key.Server.Access)
 
-			errOutline := outlineClient.SetDataLimit(key.KeyID, 0)
+			errOutline := outlineClient.DeleteAccessKey(key.KeyID)
 			if errOutline != nil {
-				log.Printf("[ERROR] Can't change datalimit key #%v, err: %v", key.ID, errOutline)
+				log.Printf("[ERROR] Can't delete key #%v, err: %v", key.ID, errOutline)
 				s.keyService.Delete(key.ID)
 				continue
 			}

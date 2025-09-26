@@ -30,7 +30,7 @@ func (r *ProviderRepository) GetByName(id uint) (*model.Provider, error) {
 
 func (r *ProviderRepository) GetAll() ([]model.Provider, error) {
 	var providers []model.Provider
-	err := r.db.Find(providers).Error
+	err := r.db.Find(&providers).Error
 	if err != nil {
 		return nil, err
 	}

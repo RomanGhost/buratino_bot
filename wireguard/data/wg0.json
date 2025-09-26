@@ -1,0 +1,29 @@
+{
+  "server": {
+    "privateKey": "gNf2sJx+7NTC8MFsg2sziI3jQbwbkpwrSCQG+rz/gUo=",
+    "publicKey": "wIwmAPbdHZi26xBnqXQkjuWX3pqXYYgwx7fjTuX7QBg=",
+    "address": "10.8.0.1"
+  },
+  "clients": {
+    "1ca9bd41-f6e8-4cea-a00c-ada1a9cb7c44": {
+      "name": "Test",
+      "address": "10.8.0.2",
+      "privateKey": "iJjB91Fbp16e9zgfO0twq8NV2ySezhej6EKwRrzWUUc=",
+      "publicKey": "s6En5AZ1R+yCmL5swWvXj4Ggmuq3Kf4EP3OXKQw6Hk4=",
+      "preSharedKey": "kq5oOjVNpPE/1JEbmTA34ps1dRj+KNwszzQRIkyxRYE=",
+      "createdAt": "2025-09-26T19:44:13.625Z",
+      "updatedAt": "2025-09-26T19:44:13.625Z",
+      "enabled": true
+    },
+    "0fba5b9f-d7be-4bbf-a5d4-fdb9c136cb79": {
+      "name": "Test2",
+      "address": "10.8.0.3",
+      "privateKey": "cFH6+hUWxo4clBbfvdR7vlV+lscrZjHnbschwBqFTX4=",
+      "publicKey": "PTS0g6/5vIrFXwrkon3CNIvms68T/4FOBrG5/dP2+yw=",
+      "preSharedKey": "easHZ272iSsFYXUNEkE/92dMCHILOCezFYQOndphDDg=",
+      "createdAt": "2025-09-26T19:44:20.225Z",
+      "updatedAt": "2025-09-26T19:44:20.225Z",
+      "enabled": true
+    }
+  }
+}

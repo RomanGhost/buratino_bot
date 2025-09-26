@@ -112,28 +112,18 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 		return
 	}
 
-	// rewrite to choose provider
 	outlineClient := outline.NewOutlineClient(server.Access)
 
-	// generate new keys with name
-	key, err := outlineClient.CreateAccessKey()
+	newKeyName := fmt.Sprintf("%d", telegramUser.ID)
+	connectionKey, err := outlineClient.CreateKey(newKeyName)
+	log.Println("[DEBUG] created key", connectionKey)
 	if err != nil {
-		log.Printf("[WARN] create outline key: %v\n", err)
+		log.Printf("[WARN] Can't create outline key: %v\n", err)
 		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
-	key.Name = fmt.Sprintf("%v_%v", telegramUser.ID, time.Now().UTC().Unix())
-	err = outlineClient.RenameAccessKey(key.ID, key.Name)
-	if err != nil {
-		log.Printf("[WARN] Can't rename outline key: %v\n", err)
-		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	connectionKey := key.AccessURL + "&prefix=POST%20"
-
-	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, resultDuration)
+	keyDB, err := h.keyService.CreateKeyWithDeadline(connectionKey.ID, telegramUser.ID, server.ID, connectionKey.ConnectData, connectionKey.Name, resultDuration)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
@@ -144,7 +134,7 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
 			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n⌚ Время жизни: %s\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
-			keyDB.ID, bot.EscapeMarkdown(connectionKey), bot.EscapeMarkdown(formatDuration(keyDB.Duration)),
+			keyDB.ID, bot.EscapeMarkdown(connectionKey.ConnectData), bot.EscapeMarkdown(formatDuration(keyDB.Duration)),
 		),
 		ParseMode: "MarkdownV2",
 	})

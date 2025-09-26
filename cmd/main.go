@@ -30,10 +30,12 @@ import (
 func initHandlerVPN(s *vpn.Services, as *account.Services) *vpn.Handlers {
 	regionHandler := vpnHandlerBot.NewRegionHandler(s.RegionService)
 	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
+	provider := vpnHandlerBot.NewProviderHandler(s.ProviderService)
 
 	return &vpn.Handlers{
-		RegionHandler: regionHandler,
-		KeyHandler:    keyHandler,
+		RegionHandler:   regionHandler,
+		KeyHandler:      keyHandler,
+		ProviderHandler: provider,
 	}
 }
 
@@ -77,7 +79,7 @@ func main() {
 		// key work
 		bot.WithCallbackQueryDataHandler(data.CreateKeyRequest, bot.MatchTypeExact, vpnHandlers.RegionHandler.GetRegionsInline),                                                // first - get request for create key -> send to get the region
 		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetRegionSendProvider(vpnHandlers.ProviderHandler.GetProvidersInline)), // get region, send a request of the Provider
-		bot.WithCallbackQueryDataHandler(data.ProviderChoose, bot.MatchTypeExact, vpnHandlers.KeyHandler.GetProviderSendTime(vpnHandlerBot.KeyboardTimeChoose)),                // get provider, send a request of the time
+		bot.WithCallbackQueryDataHandler(data.ProviderChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetProviderSendTime(vpnHandlerBot.KeyboardTimeChoose)),               // get provider, send a request of the time
 		bot.WithCallbackQueryDataHandler(data.TimeChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetTimeToCreateKey(vpnHandlers.KeyHandler.CreateKey)),
 
 		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnHandlers.KeyHandler.ExtendKeyIntline),
