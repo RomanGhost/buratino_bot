@@ -35,6 +35,12 @@ func (r *ServerRepository) GetByRegion(regionName string) ([]model.Server, error
 	return servers, err
 }
 
+func (r *ServerRepository) GetByRegionAndProvider(regionName, providerName string) ([]model.Server, error) {
+	var servers []model.Server
+	err := r.db.Where("region = ? and provider_id = ?", regionName, providerName).Find(&servers).Error
+	return servers, err
+}
+
 // GetAll gets all servers with pagination
 func (r *ServerRepository) GetAll(offset, limit int) ([]model.Server, error) {
 	var servers []model.Server

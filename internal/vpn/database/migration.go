@@ -1,13 +1,17 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // AutoMigrate creates all tables
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
+		&model.Provider{},
 		&model.Region{},
 		&model.User{},
 		&model.Server{},
@@ -24,19 +28,18 @@ func SeedData(db *gorm.DB) error {
 		{RegionName: "Germany", ShortName: "DE"},
 	}
 
-	for _, region := range regions {
-		if err := db.FirstOrCreate(&region, model.Region{RegionName: region.RegionName}).Error; err != nil {
-			return err
-		}
+	err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&regions).Error
+	if err != nil {
+		return fmt.Errorf("failed to initialize actions: %v", err)
 	}
 
-	server := model.Server{
-		Region: regions[0].ShortName,
-		Access: "https://77.233.215.100:3411/g2G6SIZWzAPcXeFVjO_78A",
+	providers := []model.Provider{
+		model.Outline, model.Wireguard,
 	}
 
-	if err := db.FirstOrCreate(&server, server).Error; err != nil {
-		return err
+	err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&providers).Error
+	if err != nil {
+		return fmt.Errorf("failed to initialize actions: %v", err)
 	}
 
 	return nil

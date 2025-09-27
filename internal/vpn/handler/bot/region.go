@@ -27,7 +27,7 @@ func (h *RegionHandler) GetRegionsInline(ctx context.Context, b *bot.Bot, update
 
 	regions, err := h.regionService.GetRegionsWithServers()
 	if err != nil {
-		regionsError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		regionError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -43,5 +43,16 @@ func (h *RegionHandler) GetRegionsInline(ctx context.Context, b *bot.Bot, update
 
 	if err != nil {
 		log.Printf("[WARN] Error send region message %v", err)
+	}
+}
+
+func regionError(ctx context.Context, b *bot.Bot, chatId int64) {
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    chatId,
+		Text:      `Возникли проблемы с полученим регионов, уже чиним\!`,
+		ParseMode: models.ParseModeMarkdown,
+	})
+	if err != nil {
+		log.Printf("[WARN] Error send info error message %v", err)
 	}
 }

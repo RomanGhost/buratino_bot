@@ -27,13 +27,27 @@ import (
 - [ ] Возможность продлить написав боту - да
 */
 
+func createCacheDir() {
+	dir := "cache" // нужная директория
+
+	// 0755 — права доступа (rwxr-xr-x)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Fatalf("не удалось создать директорию %s: %v", dir, err)
+	}
+
+	log.Println("Директория успешно создана или уже существует:", dir)
+}
+
 func initHandlerVPN(s *vpn.Services, as *account.Services) *vpn.Handlers {
 	regionHandler := vpnHandlerBot.NewRegionHandler(s.RegionService)
 	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
+	provider := vpnHandlerBot.NewProviderHandler(s.ProviderService)
 
 	return &vpn.Handlers{
-		RegionHandler: regionHandler,
-		KeyHandler:    keyHandler,
+		RegionHandler:   regionHandler,
+		KeyHandler:      keyHandler,
+		ProviderHandler: provider,
 	}
 }
 
@@ -50,6 +64,7 @@ func initHandlerAccount(s *account.Services, vpnS *vpn.Services) *account.Handle
 }
 
 func main() {
+	createCacheDir()
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -75,10 +90,12 @@ func main() {
 
 	opts := []bot.Option{
 		// key work
-		bot.WithCallbackQueryDataHandler(data.CreateKey, bot.MatchTypeExact, vpnHandlers.RegionHandler.GetRegionsInline),
+		bot.WithCallbackQueryDataHandler(data.CreateKeyRequest, bot.MatchTypeExact, vpnHandlers.RegionHandler.GetRegionsInline),                                                // first - get request for create key -> send to get the region
+		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetRegionSendProvider(vpnHandlers.ProviderHandler.GetProvidersInline)), // get region, send a request of the Provider
+		bot.WithCallbackQueryDataHandler(data.ProviderChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetProviderSendTime(vpnHandlerBot.KeyboardTimeChoose)),               // get provider, send a request of the time
+		bot.WithCallbackQueryDataHandler(data.TimeChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetTimeToCreateKey(vpnHandlers.KeyHandler.CreateKey)),
+
 		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnHandlers.KeyHandler.ExtendKeyIntline),
-		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.CreateKeyGetServerInline),
-		bot.WithCallbackQueryDataHandler(data.CreateTime, bot.MatchTypePrefix, vpnHandlers.KeyHandler.CreateKeyGetTimeInline),
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, vpnHandlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, vpnHandlerBot.HelpOutlineIntructionInline),

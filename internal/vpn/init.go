@@ -14,22 +14,25 @@ import (
 )
 
 type Handlers struct {
-	RegionHandler *handlerBot.RegionHandler
-	KeyHandler    *handlerBot.KeyHandler
+	RegionHandler   *handlerBot.RegionHandler
+	KeyHandler      *handlerBot.KeyHandler
+	ProviderHandler *handlerBot.ProviderHandler
 }
 
 type Services struct {
-	KeyService    *service.KeyService
-	UserService   *service.UserService
-	RegionService *service.RegionService
-	ServerService *service.ServerService
+	KeyService      *service.KeyService
+	UserService     *service.UserService
+	RegionService   *service.RegionService
+	ProviderService *service.ProviderService
+	ServerService   *service.ServerService
 }
 
 type repositories struct {
-	KeyRepository    *repository.KeyRepository
-	UserRepository   *repository.UserRepository
-	ServerRepository *repository.ServerRepository
-	RegionRepository *repository.RegionRepository
+	KeyRepository      *repository.KeyRepository
+	UserRepository     *repository.UserRepository
+	ServerRepository   *repository.ServerRepository
+	RegionRepository   *repository.RegionRepository
+	ProviderRepository *repository.ProviderRepository
 }
 
 func initRepository(db *gorm.DB) *repositories {
@@ -37,12 +40,14 @@ func initRepository(db *gorm.DB) *repositories {
 	userRepository := repository.NewUserRepository(db)
 	serverRepository := repository.NewServerRepository(db)
 	regionRepository := repository.NewRegionRepository(db)
+	providerRepository := repository.NewProviderRepository(db)
 
 	return &repositories{
 		keyRepository,
 		userRepository,
 		serverRepository,
 		regionRepository,
+		providerRepository,
 	}
 }
 
@@ -51,11 +56,13 @@ func InitService(repo *repositories) *Services {
 	userService := service.NewUserService(repo.UserRepository)
 	regionService := service.NewRegionService(repo.RegionRepository)
 	serverService := service.NewServerService(repo.ServerRepository, keyService)
+	providerService := service.NewProviderService(repo.ProviderRepository)
 
 	return &Services{
 		keyService,
 		userService,
 		regionService,
+		providerService,
 		serverService,
 	}
 }

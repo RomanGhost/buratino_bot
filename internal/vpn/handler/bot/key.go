@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -11,16 +12,12 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
-
-type keyInfo struct {
-	ServerID         uint
-	DeadlineDuration time.Duration
-}
 
 type KeyHandler struct {
 	userService             *service.UserService
@@ -51,7 +48,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	// number check
 	keyID, err := strconv.ParseUint(keyIDString, 10, 64)
 	if err != nil {
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 
 	keyIDUint := uint(keyID)
@@ -65,7 +62,7 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	telegramUser := update.CallbackQuery.From
 	keyVal, err := h.keyService.GetByID(keyIDUint)
 	if err != nil {
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
 
 	resultDuration := h.makeRequest(telegramUser.ID, keyVal.Duration)
@@ -93,80 +90,14 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 	}
 }
 
-func (h *KeyHandler) CreateKeyGetServerInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	defer function.InlineAnswerWithDelete(ctx, b, update)
-
+func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.CallbackQuery.From
+	defer delete(h.keyCreatorInfo, telegramUser.ID)
 
-	// get data from inline
-	callbackData := update.CallbackQuery.Data
-	shortRegionName := callbackData[len(data.RegionChoose):] //strings.Split(data, "_")[1]
-
-	// get servers by region
-	minServer, err := h.serverService.GetNotLoadedServer(shortRegionName)
-	if err != nil {
-		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	// переписать для пользователя его данные по серверу
-	h.keyCreatorInfo[telegramUser.ID] = keyInfo{ServerID: minServer.ID}
-
-	zeroTimeKeyboard := data.GetCustomTimeKeyboard(&data.TimeDataDuration{Minutes: 30, Hours: 0, Days: 0})
-
-	messageText := `Выбери время\!`
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
-		Text:        messageText,
-		ReplyMarkup: zeroTimeKeyboard,
-		ParseMode:   "MarkdownV2",
-	})
-
-	if err != nil {
-		log.Printf("[WARN] Error send notify message %v", err)
-	}
-}
-
-func (h *KeyHandler) CreateKeyGetTimeInline(ctx context.Context, b *bot.Bot, update *models.Update) {
-	defer function.InlineAnswerWithDelete(ctx, b, update)
-
-	telegramUser := update.CallbackQuery.From
-
-	_, exist := h.keyCreatorInfo[telegramUser.ID]
-	if !exist {
-		log.Printf("[WARN] user %d, can't go to next step", telegramUser.ID)
-		errorSkipStep(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	info := h.keyCreatorInfo[telegramUser.ID]
-
-	// get data from inline
-	callbackData := update.CallbackQuery.Data
-	timeDurationStr := callbackData[len(data.CreateTime):]
-	timeDataDuration, err := data.GetDateFromButton(timeDurationStr)
-	if err != nil {
-		log.Printf("[WARN] Can't parse date from callback: %v\n", err)
-		errorTimeChoice(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	duration := time.Duration(timeDataDuration.Days) * 24 * time.Hour
-	duration += time.Duration(timeDataDuration.Hours) * time.Hour
-	duration += time.Duration(timeDataDuration.Minutes) * time.Minute
-
-	info.DeadlineDuration = duration
-	h.keyCreatorInfo[telegramUser.ID] = info
-
-	h.createKey(ctx, b, update)
-}
-
-func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.Update) {
-	telegramUser := update.CallbackQuery.From
 	val, ok := h.keyCreatorInfo[telegramUser.ID]
 	if !ok {
 		// отправить в начало
-		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorForgotUserData(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
@@ -179,48 +110,97 @@ func (h *KeyHandler) createKey(ctx context.Context, b *bot.Bot, update *models.U
 
 	server, err := h.serverService.GetServerByID(val.ServerID)
 	if err != nil {
-		serverError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
-	outlineClient := outline.NewOutlineClient(server.Access)
+	providerClient := provider.NewProvider(server.Access, server.ProviderID)
 
-	// generate new keys with name
-	key, err := outlineClient.CreateAccessKey()
+	newKeyName := fmt.Sprintf("%d", telegramUser.ID)
+	connectionKey, err := providerClient.CreateKey(newKeyName)
+	log.Println("[DEBUG] created key", connectionKey)
 	if err != nil {
-		log.Printf("[WARN] create outline key: %v\n", err)
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		log.Printf("[WARN] Can't create key: %v\n", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}
 
-	key.Name = fmt.Sprintf("%v_%v", telegramUser.ID, time.Now().UTC().Unix())
-	err = outlineClient.RenameAccessKey(key.ID, key.Name)
-	if err != nil {
-		log.Printf("[WARN] Can't rename outline key: %v\n", err)
-		missKeyError(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
-		return
-	}
-
-	connectionKey := key.AccessURL + "&prefix=POST%20"
-
-	keyDB, err := h.keyService.CreateKeyWithDeadline(key.ID, telegramUser.ID, server.ID, connectionKey, key.Name, resultDuration)
+	keyDB, err := h.keyService.CreateKeyWithDeadline(connectionKey.ID, telegramUser.ID, server.ID, connectionKey.ConnectData, connectionKey.Name, resultDuration)
 	if err != nil {
 		log.Printf("[WARN] Can't write key in db: %v\n", err)
 		return
 	}
 
+	switch server.ProviderID {
+	case model.Outline.Name:
+		sendKeyOutline(ctx, b, update, keyDB)
+	case model.Wireguard.Name:
+		sendKeyWireguard(ctx, b, update, keyDB)
+	default:
+		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	}
+
+}
+
+func sendKeyOutline(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
 	// notify users
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
-			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n⌚ Время жизни: %s\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
-			keyDB.ID, bot.EscapeMarkdown(connectionKey), bot.EscapeMarkdown(formatDuration(keyDB.Duration)),
+			"🔑 *Вот мой волшебный **Outline** ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n⌚ Время жизни: %s\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
+			keyData.ID, bot.EscapeMarkdown(keyData.ConnectUrl), bot.EscapeMarkdown(formatDuration(keyData.Duration)),
 		),
 		ParseMode: "MarkdownV2",
 	})
 
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
+	}
+}
+
+func sendKeyWireguard(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
+	fileName := fmt.Sprintf("%s.conf", keyData.KeyName)
+	tempFile, err := os.CreateTemp("./cache", fmt.Sprintf("*-%s", fileName))
+	if err != nil {
+		log.Printf("[WARN] error create temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+	// defer os.Remove(tmpFile.Name()) // удаляем после использования
+	defer tempFile.Close()
+
+	_, err = tempFile.WriteString(keyData.ConnectUrl)
+	if err != nil {
+		log.Printf("[WARN] error write to temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	_, err = tempFile.Seek(0, 0) // переместить курсор в начало
+	if err != nil {
+		log.Printf("[WARN] error seek temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	textMessage := fmt.Sprintf(
+		"🔑 *Вот мой волшебный Wireguard ключик №%d* \\- держи, не потеряй\\! 🪄\n"+
+			"⌚ Время жизни: %s ✨",
+		keyData.ID,
+		bot.EscapeMarkdown(formatDuration(keyData.Duration)),
+	)
+
+	_, err = b.SendDocument(ctx, &bot.SendDocumentParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Document: &models.InputFileUpload{
+			Filename: fileName, // имя файла, которое увидит пользователь
+			Data:     tempFile, // сам файл
+		},
+		Caption:   textMessage,
+		ParseMode: "MarkdownV2",
+	})
+	if err != nil {
+		log.Printf("[ERROR] send document: %v", err)
 	}
 }
 
@@ -260,7 +240,7 @@ func (h *KeyHandler) makeRequest(telegramID int64, timeDuration time.Duration) t
 	return timeDuration
 }
 
-func (h *KeyHandler) countPrice(telegramID int64, timeDuration time.Duration) int64 {
+func (h *KeyHandler) countPrice(timeDuration time.Duration) int64 {
 
 	var resPrice int64
 	cd := timework.ConcrateDuration(timeDuration)
@@ -328,10 +308,25 @@ func CreateKeyInlineShutdown(ctx context.Context, b *bot.Bot, mes models.MaybeIn
 	}
 }
 
-func regionsError(ctx context.Context, b *bot.Bot, chatId int64) {
+func formatDuration(timeDuration time.Duration) string {
+	cd := timework.ConcrateDuration(timeDuration)
+
+	result := fmt.Sprintf("%02d:%02d", cd.Hours, cd.Minutes)
+	if cd.Days > 0 {
+		result = fmt.Sprintf("%dд %s", cd.Days, result)
+	}
+	if cd.Months > 0 {
+		result = fmt.Sprintf("%dм %s", cd.Months, result)
+	}
+
+	return result
+}
+
+func errorForgotUserData(ctx context.Context, b *bot.Bot, chatId int64) {
+	log.Printf("[WARN] Error get values from map")
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatId,
-		Text:      `Возникли проблемы с полученим регионов, уже чиним\!`,
+		Text:      `Я все забыл, давай по новой\!`,
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
@@ -339,11 +334,11 @@ func regionsError(ctx context.Context, b *bot.Bot, chatId int64) {
 	}
 }
 
-func serverError(ctx context.Context, b *bot.Bot, chatId int64) {
-	log.Printf("[WARN] Error get server of region")
+func errorServer(ctx context.Context, b *bot.Bot, chatId int64) {
+	log.Printf("[WARN] Error get server")
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    chatId,
-		Text:      `Возникли проблемы с полученим серверов выбранного региона, уже чиним\!`,
+		Text:      `Возникли проблемы со сбором серверов, уже чиним\!`,
 		ParseMode: models.ParseModeMarkdown,
 	})
 	if err != nil {
@@ -351,7 +346,7 @@ func serverError(ctx context.Context, b *bot.Bot, chatId int64) {
 	}
 }
 
-func missKeyError(ctx context.Context, b *bot.Bot, chatId int64) {
+func errorMissKey(ctx context.Context, b *bot.Bot, chatId int64) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: chatId,
 		Text: `🏃‍♂️💨 Пока я к тебе бежал, *ключик куда\-то выскользнул*\.\.\. 🔑😱  
@@ -394,33 +389,4 @@ func errorTimeChoice(ctx context.Context, b *bot.Bot, chatId int64) {
 	if err != nil {
 		log.Printf("[WARN] Error send info error message %v", err)
 	}
-}
-
-func errorSkipStep(ctx context.Context, b *bot.Bot, chatId int64) {
-	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
-
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        `Был пропущен шаг при выборе ключа, придется начать сначала`,
-		ParseMode:   models.ParseModeMarkdown,
-		ReplyMarkup: inlineKeyboard,
-	})
-
-	if err != nil {
-		log.Printf("[WARN] Error send info error message %v", err)
-	}
-}
-
-func formatDuration(timeDuration time.Duration) string {
-	cd := timework.ConcrateDuration(timeDuration)
-
-	result := fmt.Sprintf("%02d:%02d", cd.Hours, cd.Minutes)
-	if cd.Days > 0 {
-		result = fmt.Sprintf("%dд %s", cd.Days, result)
-	}
-	if cd.Months > 0 {
-		result = fmt.Sprintf("%dм %s", cd.Months, result)
-	}
-
-	return result
 }

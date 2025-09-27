@@ -36,3 +36,29 @@ func GetRegionsInlineKeyboard(regions []model.Region) *models.InlineKeyboardMark
 
 	return inlineKeyboard
 }
+
+func GetProvidersInlineKeyboard(providers []model.Provider) *models.InlineKeyboardMarkup {
+	// providers into buttons
+	inlineButtons := [][]models.InlineKeyboardButton{}
+	line := []models.InlineKeyboardButton{}
+	for i, Provider := range providers {
+		button := models.InlineKeyboardButton{Text: Provider.Name, CallbackData: fmt.Sprintf("%v%v", data.ProviderChoose, Provider.Name)}
+		line = append(line, button)
+
+		if (i+1)%3 == 0 {
+			inlineButtons = append(inlineButtons, line)
+			line = line[0:0]
+		}
+	}
+
+	if len(line) > 0 {
+		inlineButtons = append(inlineButtons, line)
+	}
+
+	// send message
+	inlineKeyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: inlineButtons,
+	}
+
+	return inlineKeyboard
+}

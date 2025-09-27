@@ -7,7 +7,7 @@ import (
 	"time"
 
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 )
@@ -77,7 +77,7 @@ func (s *KeyScheduler) notifyExpired(ctx context.Context) {
 		default:
 
 			delta := key.DeadlineTime.Sub(nowTime)
-			deadlinePercent := time.Duration(float64(key.Duration)*0.1)
+			deadlinePercent := time.Duration(float64(key.Duration) * 0.1)
 			if delta < deadlinePercent {
 				continue
 			}
@@ -140,11 +140,11 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			log.Printf("[INFO] diactivate key #%v", key.ID)
 
 			// TODO edit to change url
-			outlineClient := outline.NewOutlineClient(key.Server.Access)
+			providerClient := provider.NewProvider(key.Server.Access, key.Server.ProviderID)
 
-			errOutline := outlineClient.SetDataLimit(key.OutlineKeyId, 0)
+			errOutline := providerClient.DeleteAccessKey(key.KeyID)
 			if errOutline != nil {
-				log.Printf("[ERROR] Can't change datalimit key #%v, err: %v", key.ID, errOutline)
+				log.Printf("[ERROR] Can't delete key #%v, err: %v", key.ID, errOutline)
 				s.keyService.Delete(key.ID)
 				continue
 			}

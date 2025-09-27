@@ -19,8 +19,8 @@ func NewServerService(serverRepository *repository.ServerRepository, keyService 
 	}
 }
 
-func (s *ServerService) GetNotLoadedServer(shortRegionName string) (*model.Server, error) {
-	servers, err := s.GetServersByRegionShortName(shortRegionName)
+func (s *ServerService) GetNotLoadedByRegionAndProviderServer(shortRegionName, providerName string) (*model.Server, error) {
+	servers, err := s.GetServersByRegionShortNameAndProvider(shortRegionName, providerName)
 	if err != nil || len(servers) == 0 {
 		return nil, err
 	}
@@ -47,6 +47,10 @@ func (s *ServerService) GetNotLoadedServer(shortRegionName string) (*model.Serve
 
 func (s *ServerService) GetServersByRegionShortName(shortRegionName string) ([]model.Server, error) {
 	return s.serverRepository.GetByRegion(shortRegionName)
+}
+
+func (s *ServerService) GetServersByRegionShortNameAndProvider(shortRegionName, providerName string) ([]model.Server, error) {
+	return s.serverRepository.GetByRegionAndProvider(shortRegionName, providerName)
 }
 
 func (s *ServerService) GetServerByID(serverID uint) (*model.Server, error) {

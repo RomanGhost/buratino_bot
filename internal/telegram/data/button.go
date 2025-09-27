@@ -9,16 +9,17 @@ import (
 )
 
 const (
-	RegionChoose = "chRegion_"
-	ExtendKey    = "extKey_"
+	RegionChoose   = "chRegion_"
+	ProviderChoose = "chProvider_"
+	ExtendKey      = "extKey_"
 
-	CreateKey        = "createKey"
+	CreateKeyRequest = "createKey"
 	InfoAboutProject = "infoProject"
 	OutlineHelp      = "helpOutline"
 
 	TimeAdd    = "tAdd_"
 	TimeReduce = "tReduce_"
-	CreateTime = "tCreate_"
+	TimeChoose = "tChoose_"
 )
 
 type TimeUnit struct {
@@ -35,7 +36,7 @@ var (
 )
 
 func CreateKeyButton() models.InlineKeyboardButton {
-	button := models.InlineKeyboardButton{Text: "Создать ключ", CallbackData: CreateKey}
+	button := models.InlineKeyboardButton{Text: "Создать ключ", CallbackData: CreateKeyRequest}
 
 	return button
 }
@@ -87,8 +88,8 @@ func GetDateFromButton(dateData string) (*TimeDataDuration, error) {
 	return &TimeDataDuration{uint16(minutes), uint16(hours), uint16(days)}, nil
 }
 
-func CreateDateButton(keyboardTime *TimeDataDuration) models.InlineKeyboardButton {
-	button := models.InlineKeyboardButton{Text: "Создать", CallbackData: fmt.Sprintf("%v%02d%02d%02d", CreateTime, keyboardTime.Minutes, keyboardTime.Hours, keyboardTime.Days)}
+func ChooseDateButton(keyboardTime *TimeDataDuration) models.InlineKeyboardButton {
+	button := models.InlineKeyboardButton{Text: "Выбрать", CallbackData: fmt.Sprintf("%v%02d%02d%02d", TimeChoose, keyboardTime.Minutes, keyboardTime.Hours, keyboardTime.Days)}
 
 	return button
 }
