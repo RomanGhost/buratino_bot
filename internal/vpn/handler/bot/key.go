@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/database/model"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
@@ -129,18 +131,76 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 		return
 	}
 
+	switch server.ProviderID {
+	case model.Outline.Name:
+		sendKeyOutline(ctx, b, update, keyDB)
+	case model.Wireguard.Name:
+		sendKeyWireguard(ctx, b, update, keyDB)
+	default:
+		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	}
+
+}
+
+func sendKeyOutline(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
 	// notify users
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Text: fmt.Sprintf(
-			"🔑 *Вот мой волшебный ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n⌚ Время жизни: %s\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
-			keyDB.ID, bot.EscapeMarkdown(connectionKey.ConnectData), bot.EscapeMarkdown(formatDuration(keyDB.Duration)),
+			"🔑 *Вот мой волшебный **Outline** ключик №%d* \\- держи, не потеряй\\! 🪄\n`%s`\n⌚ Время жизни: %s\n_Просто нажми \\- и он скопируется сам собой\\.\\.\\._ ✨",
+			keyData.ID, bot.EscapeMarkdown(keyData.ConnectUrl), bot.EscapeMarkdown(formatDuration(keyData.Duration)),
 		),
 		ParseMode: "MarkdownV2",
 	})
 
 	if err != nil {
 		log.Printf("[WARN] Error send key message %v", err)
+	}
+}
+
+func sendKeyWireguard(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
+	fileName := fmt.Sprintf("%s.conf", keyData.KeyName)
+	tempFile, err := os.CreateTemp("./cache", fmt.Sprintf("*-%s", fileName))
+	if err != nil {
+		log.Printf("[WARN] error create temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+	// defer os.Remove(tmpFile.Name()) // удаляем после использования
+	defer tempFile.Close()
+
+	_, err = tempFile.WriteString(keyData.ConnectUrl)
+	if err != nil {
+		log.Printf("[WARN] error write to temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	_, err = tempFile.Seek(0, 0) // переместить курсор в начало
+	if err != nil {
+		log.Printf("[WARN] error seek temp file: %v", err)
+		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
+	}
+
+	textMessage := fmt.Sprintf(
+		"🔑 *Вот мой волшебный Wireguard ключик №%d* \\- держи, не потеряй\\! 🪄\n"+
+			"⌚ Время жизни: %s ✨",
+		keyData.ID,
+		bot.EscapeMarkdown(formatDuration(keyData.Duration)),
+	)
+
+	_, err = b.SendDocument(ctx, &bot.SendDocumentParams{
+		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+		Document: &models.InputFileUpload{
+			Filename: fileName, // имя файла, которое увидит пользователь
+			Data:     tempFile, // сам файл
+		},
+		Caption:   textMessage,
+		ParseMode: "MarkdownV2",
+	})
+	if err != nil {
+		log.Printf("[ERROR] send document: %v", err)
 	}
 }
 

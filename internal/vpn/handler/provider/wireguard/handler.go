@@ -219,6 +219,11 @@ func generateWGConfig(client Client) string {
 		}
 	}
 
+	endpoint := "localhost:51820"
+	if client.Endpoint != nil {
+		endpoint = *client.Endpoint
+	}
+
 	config := fmt.Sprintf(`[Interface]
 PrivateKey = %s
 Address = %s
@@ -240,7 +245,7 @@ Endpoint = %s
 		client.PresharedKey,
 		allowedIPs,
 		client.PersistentKeepalive,
-		client.Endpoint,
+		endpoint,
 	)
 
 	return config

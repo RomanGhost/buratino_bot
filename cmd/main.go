@@ -27,6 +27,18 @@ import (
 - [ ] Возможность продлить написав боту - да
 */
 
+func createCacheDir() {
+	dir := "cache" // нужная директория
+
+	// 0755 — права доступа (rwxr-xr-x)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Fatalf("не удалось создать директорию %s: %v", dir, err)
+	}
+
+	log.Println("Директория успешно создана или уже существует:", dir)
+}
+
 func initHandlerVPN(s *vpn.Services, as *account.Services) *vpn.Handlers {
 	regionHandler := vpnHandlerBot.NewRegionHandler(s.RegionService)
 	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
@@ -52,6 +64,7 @@ func initHandlerAccount(s *account.Services, vpnS *vpn.Services) *account.Handle
 }
 
 func main() {
+	createCacheDir()
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
