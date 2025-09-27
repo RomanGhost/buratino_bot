@@ -16,6 +16,7 @@ const (
 	CreateKeyRequest = "createKey"
 	InfoAboutProject = "infoProject"
 	OutlineHelp      = "helpOutline"
+	WireguardHelp    = "helpWireguard"
 
 	TimeAdd    = "tAdd_"
 	TimeReduce = "tReduce_"

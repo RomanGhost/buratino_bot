@@ -69,3 +69,42 @@ func HelpOutlineIntructionInline(ctx context.Context, b *bot.Bot, update *models
 		log.Printf("[WARN] Error send info message %v", err)
 	}
 }
+
+func HelpWireguardIntructionInline(ctx context.Context, b *bot.Bot, update *models.Update) {
+	function.InlineAnswer(ctx, b, update)
+
+	inlineKeyboard := data.CreateKeyboard([]models.InlineKeyboardButton{data.CreateKeyButton()})
+
+	message := `📜 *Волшебная инструкция по настройке VPN с WireGuard*
+Следуй за мной, деревянный друг, в страну безопасного и свободного интернета\! 🌍✨ Вот как обрести силу волшебного туннеля:
+
+🔧 *Шаг 1: Установи волшебное зеркало \- WireGuard App:*
+📱 iOS: https://apps.apple.com/app/wireguard/id1441195209
+🍏 MacOS: https://apps.apple.com/app/wireguard/id1451685025
+🪟 Windows: https://www.wireguard.com/install/
+🐧 Linux: https://www.wireguard.com/install/
+🤖 Android: https://play.google.com/store/apps/details?id=com.wireguard.android
+
+🔑 *Шаг 2: Жди волшебный ключ\!* 
+Ты получишь загадочный конфиг-файл с расширением \'.conf\' или текстовый ключ. Сохрани его, как настоящий амулет✨
+
+🚪 *Шаг 3: Вставь ключ в WireGuard и открой врата свободы\!* 
+- Если у тебя файл \'.conf\' — просто импортируй его в приложение.  
+- Если текстовый ключ — создай новый туннель вручную, вставив публичный ключ сервера, приватный ключ клиента, адреса и порты.  
+- Нажми _Activate_ или _Connect_ и почувствуй магию соединения ✨
+
+✅ *Готово\!* Чтобы убедиться, что ты в стране свободного интернета, загугли: _what is my ip_ и сравни IP с тем, что указан в твоем туннеле WireGuard.
+
+🧙‍♂️ Пусть ни один цифровой дракон не сможет преградить тебе путь\!`
+
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+		Text:        message,
+		ParseMode:   models.ParseModeMarkdown,
+		ReplyMarkup: inlineKeyboard,
+	})
+
+	if err != nil {
+		log.Printf("[WARN] Error send info message %v", err)
+	}
+}
