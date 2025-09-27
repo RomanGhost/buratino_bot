@@ -99,6 +99,7 @@ func main() {
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, vpnHandlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, vpnHandlerBot.HelpOutlineIntructionInline),
+		bot.WithCallbackQueryDataHandler(data.WireguardHelp, bot.MatchTypeExact, vpnHandlerBot.HelpWireguardIntructionInline),
 
 		// time work
 		bot.WithCallbackQueryDataHandler(data.TimeAdd, bot.MatchTypePrefix, handler.AddTimeInline),

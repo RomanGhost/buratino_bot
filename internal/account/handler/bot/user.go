@@ -52,9 +52,9 @@ func (h *UserHandler) RegisterUser(ctx context.Context, b *bot.Bot, update *mode
 	h.lookupUserChange(update)
 
 	inlineKeyboard := data.CreateKeyboard(
-		[]models.InlineKeyboardButton{data.CreateKeyButton()},
 		[]models.InlineKeyboardButton{data.KnowProjectButton()},
 		[]models.InlineKeyboardButton{data.AboutOutlineButton(), data.AboutWireguardButton()},
+		[]models.InlineKeyboardButton{data.CreateKeyButton()},
 	)
 
 	_, sendMessageError := b.SendMessage(ctx, &bot.SendMessageParams{
