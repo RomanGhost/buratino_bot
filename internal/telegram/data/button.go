@@ -60,6 +60,12 @@ func AboutOutlineButton() models.InlineKeyboardButton {
 	return button
 }
 
+func AboutWireguardButton() models.InlineKeyboardButton {
+	button := models.InlineKeyboardButton{Text: "Узнать об wireguard", CallbackData: WireguardHelp}
+
+	return button
+}
+
 func GetDateFromButton(dateData string) (*TimeDataDuration, error) {
 	if len(dateData) < 6 {
 		return nil, fmt.Errorf("text is not format: 02d02d02d")
