@@ -149,6 +149,10 @@ func (c *WgEasyClient) CreateClient(name string) error {
 func (c *WgEasyClient) CreateKey(name string) (*data.KeyConnectData, error) {
 	createClientName := fmt.Sprintf("%s-%d", name, time.Now().UTC().Unix())
 	err := c.CreateClient(createClientName)
+	if err != nil {
+		return nil, fmt.Errorf("error client create: %v", err)
+	}
+
 	clientsNew, err := c.GetClientsByName(createClientName)
 	if err != nil {
 		return nil, fmt.Errorf("server error get client: %v", err)
@@ -158,8 +162,7 @@ func (c *WgEasyClient) CreateKey(name string) (*data.KeyConnectData, error) {
 	}
 	newClient := clientsNew[0]
 
-	connectContent := generateWGConfig(newClient)
-
+	connectContent, err := c.GetConfigurationClientById(newClient.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error create key: %v", err)
 	}
@@ -169,6 +172,23 @@ func (c *WgEasyClient) CreateKey(name string) (*data.KeyConnectData, error) {
 		Name:        createClientName,
 		ConnectData: connectContent,
 	}, nil
+
+}
+
+func (c *WgEasyClient) GetConfigurationClientById(id int) (string, error) {
+	resp, err := c.makeRequest("GET", fmt.Sprintf("/api/client/%d/configuration", id), nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+		return "", fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
+	}
+
+	data, _ := io.ReadAll(resp.Body)
+
+	return string(data), nil
 
 }
 
@@ -186,67 +206,4 @@ func (c *WgEasyClient) DeleteAccessKey(keyID int) error {
 	}
 
 	return nil
-}
-
-func generateWGConfig(client Client) string {
-	// Формируем строку с адресами
-	addresses := client.IPv4 + "/24"
-	if client.IPv6 != "" {
-		addresses += ", " + client.IPv6 + "/112"
-	}
-
-	// Формируем DNS
-	dns := "1.1.1.1"
-	if len(client.DNS) > 0 {
-		dns = ""
-		for i, d := range client.DNS {
-			if i > 0 {
-				dns += ", "
-			}
-			dns += d
-		}
-	}
-
-	// Формируем AllowedIPs
-	allowedIPs := "0.0.0.0/0, ::/0"
-	if len(client.AllowedIPs) > 0 {
-		allowedIPs = ""
-		for i, ip := range client.AllowedIPs {
-			if i > 0 {
-				allowedIPs += ", "
-			}
-			allowedIPs += ip
-		}
-	}
-
-	endpoint := "localhost:51820"
-	if client.Endpoint != nil {
-		endpoint = *client.Endpoint
-	}
-
-	config := fmt.Sprintf(`[Interface]
-PrivateKey = %s
-Address = %s
-DNS = %s
-MTU = %d
-
-[Peer]
-PublicKey = %s
-PresharedKey = %s
-AllowedIPs = %s
-PersistentKeepalive = %d
-Endpoint = %s
-`,
-		client.PrivateKey,
-		addresses,
-		dns,
-		client.MTU,
-		client.PublicKey,
-		client.PresharedKey,
-		allowedIPs,
-		client.PersistentKeepalive,
-		endpoint,
-	)
-
-	return config
 }

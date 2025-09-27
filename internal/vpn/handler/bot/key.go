@@ -159,7 +159,7 @@ func sendKeyOutline(ctx context.Context, b *bot.Bot, update *models.Update, keyD
 }
 
 func sendKeyWireguard(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
-	fileName := fmt.Sprintf("%s.conf", keyData.KeyName)
+	fileName := fmt.Sprintf("key%d.conf", keyData.KeyID)
 	tempFile, err := os.CreateTemp("./cache", fmt.Sprintf("*-%s", fileName))
 	if err != nil {
 		log.Printf("[WARN] error create temp file: %v", err)
