@@ -204,6 +204,10 @@ func (c *OutlineClient) SetDataLimit(keyID int, limitBytes int64) error {
 	return nil
 }
 
+func (c *OutlineClient) DisableKey(keyID int) error {
+	return c.SetDataLimit(keyID, 0)
+}
+
 // Удаление лимита трафика для ключа
 func (c *OutlineClient) RemoveDataLimit(keyID int) error {
 	endpoint := fmt.Sprintf("/access-keys/%d/data-limit", keyID)

@@ -142,7 +142,8 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			// TODO edit to change url
 			providerClient := provider.NewProvider(key.Server.Access, key.Server.ProviderID)
 
-			errOutline := providerClient.DeleteAccessKey(key.KeyID)
+			// errOutline := providerClient.DeleteAccessKey(key.KeyID)
+			errOutline := providerClient.DisableKey(key.KeyID)
 			if errOutline != nil {
 				log.Printf("[ERROR] Can't delete key #%v, err: %v", key.ID, errOutline)
 				s.keyService.Delete(key.ID)

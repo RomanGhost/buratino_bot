@@ -207,3 +207,20 @@ func (c *WgEasyClient) DeleteAccessKey(keyID int) error {
 
 	return nil
 }
+
+func (c *WgEasyClient) DisableKey(keyID int) error {
+	endpoint := fmt.Sprintf("/api/client/%d/disable", keyID)
+	resp, err := c.makeRequest("POST", endpoint, map[string]bool{
+		"success": true,
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
+	}
+
+	return nil
+}

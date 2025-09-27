@@ -16,6 +16,7 @@ type Provider interface {
 	CreateKey(name string) (*data.KeyConnectData, error)
 	// GetKeyByName(name string) (*data.AccessKey, error)
 	DeleteAccessKey(keyID int) error
+	DisableKey(keyID int) error
 }
 
 func NewProvider(link string, providerName string) Provider {
