@@ -61,7 +61,7 @@ func AboutOutlineButton() models.InlineKeyboardButton {
 }
 
 func AboutWireguardButton() models.InlineKeyboardButton {
-	button := models.InlineKeyboardButton{Text: "Узнать об wireguard", CallbackData: WireguardHelp}
+	button := models.InlineKeyboardButton{Text: "Узнать о wireguard", CallbackData: WireguardHelp}
 
 	return button
 }
