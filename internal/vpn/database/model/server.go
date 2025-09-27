@@ -8,7 +8,7 @@ import (
 type Server struct {
 	gorm.Model
 	Region     string `gorm:"size:5;index"`
-	Access     string `gorm:"size:512,type:char"`
+	Access     string `gorm:"size:512,type:char;unique"`
 	ProviderID string `gorm:"size:16;index"`
 
 	// Associations

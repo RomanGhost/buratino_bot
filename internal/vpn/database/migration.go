@@ -42,16 +42,19 @@ func SeedData(db *gorm.DB) error {
 		return fmt.Errorf("failed to initialize actions: %v", err)
 	}
 
-	server := model.Server{
-		Region:     regions[0].ShortName,
-		Access:     "https://77.233.215.100:3411/g2G6SIZWzAPcXeFVjO_78A",
-		ProviderID: model.Outline.Name,
+	servers := []model.Server{
+		{Region: "NL", Access: "https://77.233.215.100:3411/g2G6SIZWzAPcXeFVjO_78A", ProviderID: "outline"},
+		{Region: "NL", Access: "https://localhost:51821/Um9tYW46NU4heGtEIVo0YSFCUmZ2", ProviderID: "wireguard"},
 	}
 
-	err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&server).Error
+	err = db.Clauses(clause.OnConflict{
+		// Columns:   []clause.Column{{Name: "access"}}, // уникальные поля
+		DoNothing: true, // ничего не делаем, если конфликт
+	}).Create(&servers).Error
 	if err != nil {
-		return fmt.Errorf("failed to initialize actions: %v", err)
+		return fmt.Errorf("failed to initialize servers: %v", err)
 	}
+
 	return nil
 }
 

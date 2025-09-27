@@ -11,7 +11,7 @@ import (
 	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -112,13 +112,13 @@ func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.U
 		return
 	}
 
-	outlineClient := outline.NewOutlineClient(server.Access)
+	providerClient := provider.NewProvider(server.Access, server.ProviderID)
 
 	newKeyName := fmt.Sprintf("%d", telegramUser.ID)
-	connectionKey, err := outlineClient.CreateKey(newKeyName)
+	connectionKey, err := providerClient.CreateKey(newKeyName)
 	log.Println("[DEBUG] created key", connectionKey)
 	if err != nil {
-		log.Printf("[WARN] Can't create outline key: %v\n", err)
+		log.Printf("[WARN] Can't create key: %v\n", err)
 		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 		return
 	}

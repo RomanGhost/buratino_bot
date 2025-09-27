@@ -7,7 +7,7 @@ import (
 	"time"
 
 	handlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider/outline"
+	"github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/provider"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn/service"
 	"github.com/go-telegram/bot"
 )
@@ -140,9 +140,9 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			log.Printf("[INFO] diactivate key #%v", key.ID)
 
 			// TODO edit to change url
-			outlineClient := outline.NewOutlineClient(key.Server.Access)
+			providerClient := provider.NewProvider(key.Server.Access, key.Server.ProviderID)
 
-			errOutline := outlineClient.DeleteAccessKey(key.KeyID)
+			errOutline := providerClient.DeleteAccessKey(key.KeyID)
 			if errOutline != nil {
 				log.Printf("[ERROR] Can't delete key #%v, err: %v", key.ID, errOutline)
 				s.keyService.Delete(key.ID)

@@ -149,7 +149,13 @@ func (c *WgEasyClient) CreateClient(name string) error {
 func (c *WgEasyClient) CreateKey(name string) (*data.KeyConnectData, error) {
 	createClientName := fmt.Sprintf("%s-%d", name, time.Now().UTC().Unix())
 	err := c.CreateClient(createClientName)
-	clientsNew, _ := c.GetClientsByName(createClientName)
+	clientsNew, err := c.GetClientsByName(createClientName)
+	if err != nil {
+		return nil, fmt.Errorf("server error get client: %v", err)
+	}
+	if len(clientsNew) < 1 {
+		return nil, fmt.Errorf("error get new client")
+	}
 	newClient := clientsNew[0]
 
 	connectContent := generateWGConfig(newClient)
@@ -160,6 +166,7 @@ func (c *WgEasyClient) CreateKey(name string) (*data.KeyConnectData, error) {
 
 	return &data.KeyConnectData{
 		ID:          newClient.ID,
+		Name:        createClientName,
 		ConnectData: connectContent,
 	}, nil
 
