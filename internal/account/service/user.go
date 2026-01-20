@@ -66,6 +66,10 @@ func (s *UserService) RegisterUser(telegramID int64, username string) (*model.Us
 	return &newUser, nil
 }
 
+func (s *UserService) GetActiveUser() ([]model.User, error) {
+	return s.userRepository.GetUsers()
+}
+
 func (s *UserService) GetUserByTelegramID(telegramID int64) (*model.User, error) {
 	u, err := s.userRepository.FindByTelegramID(telegramID)
 	if err != nil {
@@ -80,4 +84,31 @@ func (s *UserService) ExistUserByTelegramID(telegramID int64) bool {
 		return true
 	}
 	return false
+}
+
+func (s *UserService) IsCommonUser(telegramID int64) bool {
+	u, err := s.userRepository.FindByTelegramIDWithRole(telegramID)
+	if err != nil || u == nil {
+		return false
+	}
+
+	return u.UserRole.RoleName == model.CommonUserRole.RoleName
+}
+
+func (s *UserService) IsAdminUser(telegramID int64) bool {
+	u, err := s.userRepository.FindByTelegramIDWithRole(telegramID)
+	if err != nil || u == nil {
+		return false
+	}
+
+	return u.UserRole.RoleName == model.AdminRole.RoleName
+}
+
+func (s *UserService) IsModeratorUser(telegramID int64) bool {
+	u, err := s.userRepository.FindByTelegramIDWithRole(telegramID)
+	if err != nil || u == nil {
+		return false
+	}
+
+	return u.UserRole.RoleName == model.ModeratorRole.RoleName
 }

@@ -21,9 +21,9 @@ func AutoMigrate(db *gorm.DB) error {
 func SeedData(db *gorm.DB) error {
 	// Seed model.UserRoles
 	userRoles := []model.UserRole{
-		{RoleName: "admin"},
-		{RoleName: "user"},
-		{RoleName: "moderator"},
+		model.CommonUserRole,
+		model.AdminRole,
+		model.ModeratorRole,
 	}
 
 	for _, role := range userRoles {
@@ -33,12 +33,11 @@ func SeedData(db *gorm.DB) error {
 	}
 
 	goods := []model.GoodsPrice{
-		{SysName: "1m vpn", Name: "1 минута", Price: 5},         // 216 rub/month	0.005 rub
-		{SysName: "1h vpn", Name: "1 час", Price: 250},          // 180 rub/month	0.25 rub
-		{SysName: "1d vpn", Name: "1 день", Price: 5000},        // 150 rub/month	5 rub
-		{SysName: "1month vpn", Name: "1 месяц", Price: 140000}, // 140 rub/month	140 rub
-		// {Name: "3month vpn", Price: 400000}, // 133 rub/month	400 rub
-		{SysName: "topUP", Name: "Пополнение", Price: -1}, // 0.001(10^-3) rub
+		model.VPN1Min,
+		model.VPN1Hour,
+		model.VPN1Day,
+		model.VPN1Month,
+		model.TopUP,
 	}
 
 	for _, good := range goods {

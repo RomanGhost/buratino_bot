@@ -11,6 +11,14 @@ import (
 func InlineAnswerWithDelete(ctx context.Context, b *bot.Bot, update *models.Update) {
 	InlineAnswer(ctx, b, update)
 
+	// проверка nil
+	if update == nil ||
+		update.CallbackQuery == nil ||
+		update.CallbackQuery.Message.Message == nil {
+		log.Printf("[ERROR] Invalid update structure in InlineAnswerWithDelete: %+v", update)
+		return
+	}
+
 	// Удаляем сообщение с inline кнопкой
 	_, err := b.DeleteMessage(ctx, &bot.DeleteMessageParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,

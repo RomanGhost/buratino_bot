@@ -23,13 +23,13 @@ func NewKeyService(keyRepository *repository.KeyRepository, userRepository *repo
 	}
 }
 
-func (s *KeyService) CreateKeyWithDeadline(KeyID int, userTelegramID int64, serverID uint, connectURL string, keyName string, duration time.Duration) (*model.Key, error) {
-	user, err := s.userRepository.GetByTelegramID(userTelegramID)
+func (s *KeyService) CreateKeyWithDeadline(KeyID int, telegramUserID int64, serverID uint, connectURL string, keyName string, duration time.Duration) (*model.Key, error) {
+	user, err := s.userRepository.GetByTelegramID(telegramUserID)
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, fmt.Errorf("user does not exis: %v", userTelegramID)
+		return nil, fmt.Errorf("user does not exis: %v", telegramUserID)
 	}
 
 	server, err := s.serverRepository.GetByID(serverID)
@@ -58,8 +58,25 @@ func (s *KeyService) CreateKeyWithDeadline(KeyID int, userTelegramID int64, serv
 	return &newKey, nil
 }
 
-func (s *KeyService) CreateDefaultKey(KeyID int, userTelegramID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
-	return s.CreateKeyWithDeadline(KeyID, userTelegramID, serverID, connectURL, keyName, time.Duration(30*time.Minute))
+func (s *KeyService) GetKeysByTelegramUserID(telegramUserID int64) ([]model.Key, error) {
+	user, err := s.userRepository.GetByTelegramID(telegramUserID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user does not exis: %v", telegramUserID)
+	}
+
+	keys, err := s.keyRepository.GetByUserIDIncludeInactive(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return keys, nil
+}
+
+func (s *KeyService) CreateDefaultKey(KeyID int, telegramUserID int64, serverID uint, connectURL string, keyName string) (*model.Key, error) {
+	return s.CreateKeyWithDeadline(KeyID, telegramUserID, serverID, connectURL, keyName, time.Duration(30*time.Minute))
 }
 
 func (s *KeyService) CountKeysOfServer(serverID uint) int {
@@ -127,5 +144,33 @@ func (s *KeyService) ExtendKeyByID(keyID uint) (*model.Key, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error expire key: %v", err)
 	}
+	return key, nil
+}
+
+func (s *KeyService) ExtendKeyByIDWithUpdate(keyID uint, timeDuration time.Duration) (*model.Key, error) {
+	key, err := s.keyRepository.GetByIDIncludeInactive(keyID)
+	if err != nil {
+		return nil, fmt.Errorf("error get key by ID: %v", keyID)
+	}
+
+	activateKeyError := s.keyRepository.ActivateKey(key.ID)
+	if activateKeyError != nil {
+		return nil, fmt.Errorf("error activate key: %v", activateKeyError)
+	}
+
+	newDeadlineDateTime := time.Now().UTC().Truncate(time.Minute).Add(timeDuration)
+	// Если ключ имеет дату конца жизни позже чем сегодня, то не изменять его
+	if key.DeadlineTime.After(newDeadlineDateTime) {
+		return key, nil
+	}
+
+	key.Duration = timeDuration
+	key.DeadlineTime = time.Now().UTC().Truncate(time.Minute).Add(timeDuration)
+
+	updateKeyError := s.keyRepository.Update(key)
+	if updateKeyError != nil {
+		return nil, fmt.Errorf("error update key: %v", updateKeyError)
+	}
+
 	return key, nil
 }

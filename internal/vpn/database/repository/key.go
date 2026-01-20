@@ -20,6 +20,10 @@ func (r *KeyRepository) Create(key *model.Key) error {
 	return r.db.Create(key).Error
 }
 
+func (r *KeyRepository) Update(key *model.Key) error {
+	return r.db.Save(key).Error
+}
+
 // GetByID gets key by ID (only active keys)
 func (r *KeyRepository) GetByID(id uint) (*model.Key, error) {
 	var key model.Key
@@ -123,11 +127,6 @@ func (r *KeyRepository) GetAllIncludeInactive(offset, limit int) ([]model.Key, e
 	var keys []model.Key
 	err := r.db.Offset(offset).Limit(limit).Find(&keys).Error
 	return keys, err
-}
-
-// Update updates key
-func (r *KeyRepository) Update(key *model.Key) error {
-	return r.db.Save(key).Error
 }
 
 // Delete deletes key (soft delete)

@@ -38,7 +38,7 @@ func NewKeyHandler(userService *service.UserService, keyService *service.KeyServ
 	}
 }
 
-func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *KeyHandler) ExtendKeyInline(ctx context.Context, b *bot.Bot, update *models.Update) {
 	defer function.InlineAnswerWithDelete(ctx, b, update)
 
 	// key Id get
@@ -89,57 +89,115 @@ func (h *KeyHandler) ExtendKeyIntline(ctx context.Context, b *bot.Bot, update *m
 		log.Printf("[WARN] Error send notify message %v", err)
 	}
 }
-
-func (h *KeyHandler) CreateKey(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *KeyHandler) CreateKeyIfNotExists(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.CallbackQuery.From
-	defer delete(h.keyCreatorInfo, telegramUser.ID)
+	chatID := update.CallbackQuery.Message.Message.Chat.ID
 
-	val, ok := h.keyCreatorInfo[telegramUser.ID]
-	if !ok {
-		// отправить в начало
-		errorForgotUserData(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	keys, err := h.keyService.GetKeysByTelegramUserID(telegramUser.ID)
+	if err != nil {
+		errorServer(ctx, b, chatID)
 		return
 	}
 
-	resultDuration := h.makeRequest(telegramUser.ID, val.DeadlineDuration)
-	if resultDuration == 0 {
-		// Вернуть ошибку баланса пользователю и не выполнять действий
-		function.BalanceOver(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	if len(keys) == 0 {
+		h.createOrExtendKey(ctx, b, update, nil)
+		return
+	}
+
+	val, ok := h.keyCreatorInfo[telegramUser.ID]
+	if !ok {
+		errorForgotUserData(ctx, b, chatID)
 		return
 	}
 
 	server, err := h.serverService.GetServerByID(val.ServerID)
 	if err != nil {
-		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		errorServer(ctx, b, chatID)
 		return
 	}
 
-	providerClient := provider.NewProvider(server.Access, server.ProviderID)
+	for _, key := range keys {
+		if !key.IsActive && key.ServerID == server.ID {
+			h.createOrExtendKey(ctx, b, update, &key)
+			return
+		}
+	}
 
-	newKeyName := fmt.Sprintf("%d", telegramUser.ID)
-	connectionKey, err := providerClient.CreateKey(newKeyName)
-	log.Println("[DEBUG] created key", connectionKey)
-	if err != nil {
-		log.Printf("[WARN] Can't create key: %v\n", err)
-		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+	h.createOrExtendKey(ctx, b, update, nil)
+}
+
+func (h *KeyHandler) createOrExtendKey(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	existingKey *model.Key, // nil → создать новый
+) {
+	telegramUser := update.CallbackQuery.From
+	chatID := update.CallbackQuery.Message.Message.Chat.ID
+	defer delete(h.keyCreatorInfo, telegramUser.ID)
+
+	val, ok := h.keyCreatorInfo[telegramUser.ID]
+	if !ok {
+		errorForgotUserData(ctx, b, chatID)
 		return
 	}
 
-	keyDB, err := h.keyService.CreateKeyWithDeadline(connectionKey.ID, telegramUser.ID, server.ID, connectionKey.ConnectData, connectionKey.Name, resultDuration)
-	if err != nil {
-		log.Printf("[WARN] Can't write key in db: %v\n", err)
+	resultDuration := h.makeRequest(telegramUser.ID, val.DeadlineDuration)
+	if resultDuration == 0 {
+		function.BalanceOver(ctx, b, chatID)
 		return
+	}
+
+	server, err := h.serverService.GetServerByID(val.ServerID)
+	if err != nil {
+		errorServer(ctx, b, chatID)
+		return
+	}
+
+	var key *model.Key
+
+	if existingKey == nil {
+		// CREATE
+		providerClient := provider.NewProvider(server.Access, server.ProviderID)
+
+		connectionKey, err := providerClient.CreateKey(fmt.Sprintf("%d", telegramUser.ID))
+		if err != nil {
+			log.Printf("[WARN] Can't create key: %v\n", err)
+			errorMissKey(ctx, b, chatID)
+			return
+		}
+
+		key, err = h.keyService.CreateKeyWithDeadline(
+			connectionKey.ID,
+			telegramUser.ID,
+			server.ID,
+			connectionKey.ConnectData,
+			connectionKey.Name,
+			resultDuration,
+		)
+		if err != nil {
+			log.Printf("[WARN] Can't write key in db: %v\n", err)
+			errorMissKey(ctx, b, chatID)
+			return
+		}
+	} else {
+		// EXTEND
+		key, err = h.keyService.ExtendKeyByIDWithUpdate(existingKey.ID, resultDuration)
+		if err != nil {
+			log.Printf("[WARN] Can't extend key: %v\n", err)
+			errorMissKey(ctx, b, chatID)
+			return
+		}
 	}
 
 	switch server.ProviderID {
 	case model.Outline.Name:
-		sendKeyOutline(ctx, b, update, keyDB)
+		sendKeyOutline(ctx, b, update, key)
 	case model.Wireguard.Name:
-		sendKeyWireguard(ctx, b, update, keyDB)
+		sendKeyWireguard(ctx, b, update, key)
 	default:
 		errorServer(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
 	}
-
 }
 
 func sendKeyOutline(ctx context.Context, b *bot.Bot, update *models.Update, keyData *model.Key) {
@@ -210,32 +268,32 @@ func (h *KeyHandler) makeRequest(telegramID int64, timeDuration time.Duration) t
 		return 0
 	}
 
-	cd := timework.ConcrateDuration(timeDuration)
-	var res time.Duration
+	concDuration := timework.ConcrateDuration(timeDuration)
+	var resDuration time.Duration
 
-	_, minError := h.accountOperationService.CreateOperation(user.AuthID, "1m vpn", uint64(cd.Minutes))
+	_, minError := h.accountOperationService.CreateOperation(user.AuthID, "1m vpn", uint64(concDuration.Minutes))
 	if minError != nil {
 		return 0
 	}
-	res += cd.Minutes * time.Minute
+	resDuration += time.Duration(concDuration.Minutes) * time.Minute
 
-	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, "1h vpn", uint64(cd.Hours))
+	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, "1h vpn", uint64(concDuration.Hours))
 	if hourError != nil {
-		return res
+		return resDuration
 	}
-	res += cd.Hours * time.Hour
+	resDuration += time.Duration(concDuration.Hours) * time.Hour
 
-	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, "1d vpn", uint64(cd.Days))
+	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, "1d vpn", uint64(concDuration.Days))
 	if dayError != nil {
-		return res
+		return resDuration
 	}
-	res += cd.Days * timework.DayDuration
+	resDuration += time.Duration(concDuration.Days) * timework.DayDuration
 
-	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, "1month vpn", uint64(cd.Months))
+	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, "1month vpn", uint64(concDuration.Months))
 	if monthError != nil {
-		return res
+		return resDuration
 	}
-	res += cd.Months * timework.MonthDuration
+	resDuration += time.Duration(concDuration.Months) * timework.MonthDuration
 
 	return timeDuration
 }

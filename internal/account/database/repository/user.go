@@ -17,6 +17,20 @@ func (r *UserRepository) Create(user *model.User) error {
 	return r.db.Create(user).Error
 }
 
+func (r *UserRepository) GetUsers() ([]model.User, error) {
+	var users []model.User
+	err := r.db.Find(&users).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+	return users, nil
+
+}
+
 func (r *UserRepository) FindByID(id uint) (*model.User, error) {
 	var user model.User
 	err := r.db.Preload("Wallet").First(&user, id).Error
@@ -35,4 +49,11 @@ func (r *UserRepository) Update(user *model.User) error {
 
 func (r *UserRepository) Delete(id uint) error {
 	return r.db.Delete(&model.User{}, id).Error
+}
+
+func (r *UserRepository) FindByTelegramIDWithRole(tgID int64) (*model.User, error) {
+	var user model.User
+	err := r.db.Preload("Wallet").Preload("UserRole").
+		First(&user, "telegram_id = ?", tgID).Error
+	return &user, err
 }

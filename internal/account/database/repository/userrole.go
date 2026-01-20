@@ -40,6 +40,6 @@ func (r *UserRoleRepository) Delete(name string) error {
 // Загрузка роли вместе с пользователями
 func (r *UserRoleRepository) FindWithUsers(name string) (*model.UserRole, error) {
 	var role model.UserRole
-	err := r.db.Preload("Users.Wallet").First(&role, "role_name = ?", name).Error
+	err := r.db.Preload("Users").First(&role, "role_name = ?", name).Error
 	return &role, err
 }

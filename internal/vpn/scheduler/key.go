@@ -17,12 +17,7 @@ type KeyScheduler struct {
 	keyService *service.KeyService
 }
 
-type notify struct {
-	ChatID int64
-	KeyID  uint
-}
-
-func NewScheduler(duration time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
+func NewKeyScheduler(duration time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
 	return &KeyScheduler{
 		BotSheduler: BotSheduler{duration, b},
 		keyService:  keyService,
@@ -30,7 +25,7 @@ func NewScheduler(duration time.Duration, b *bot.Bot, keyService *service.KeySer
 }
 
 func (s *KeyScheduler) Run(ctx context.Context) {
-	log.Println("[INFO] scheduler run")
+	log.Println("[INFO] Key scheduler run")
 	go func() {
 		ticker := time.NewTicker(s.timeInterval)
 		defer ticker.Stop()
@@ -68,7 +63,7 @@ func (s *KeyScheduler) notifyExpired(ctx context.Context) {
 	}
 
 	nowTime := time.Now().UTC()
-	deadlineKeyData := make(map[time.Duration][]notify)
+	deadlineKeyData := make(map[time.Duration][]Notify)
 
 	for _, key := range keysExpiringSoon {
 		select {
@@ -84,18 +79,18 @@ func (s *KeyScheduler) notifyExpired(ctx context.Context) {
 
 			val, ok := deadlineKeyData[delta-s.timeInterval]
 			if !ok {
-				deadlineKeyData[delta-s.timeInterval] = []notify{}
+				deadlineKeyData[delta-s.timeInterval] = []Notify{}
 			}
 
 			chatID := key.User.TelegramID
-			dataNotify := notify{ChatID: chatID, KeyID: key.ID}
+			dataNotify := Notify{ChatID: chatID, KeyID: key.ID}
 			deadlineKeyData[delta-s.timeInterval] = append(val, dataNotify)
 		}
 	}
 	s.notify(ctx, deadlineKeyData)
 }
 
-func (s *KeyScheduler) notify(ctx context.Context, timersData map[time.Duration][]notify) {
+func (s *KeyScheduler) notify(ctx context.Context, timersData map[time.Duration][]Notify) {
 	var wg sync.WaitGroup
 	for durationTime, notifyData := range timersData {
 		if ctx.Err() != nil {
@@ -103,7 +98,7 @@ func (s *KeyScheduler) notify(ctx context.Context, timersData map[time.Duration]
 		}
 
 		wg.Add(1)
-		go func(d time.Duration, data []notify) {
+		go func(d time.Duration, data []Notify) {
 			defer wg.Done()
 
 			select {

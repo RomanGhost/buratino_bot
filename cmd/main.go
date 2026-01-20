@@ -19,12 +19,7 @@ import (
 )
 
 /*// TODO
-- [+] Задавать время жизни ключа при его создании
-- [ ] Добавить возможность изменять длительность ключа
-- [ ] Добавить пользователю монет
-- [ ] Личный кабинет
 - [ ] Продление ключа сразу если он уже все
-- [ ] Возможность продлить написав боту - да
 */
 
 func createCacheDir() {
@@ -93,9 +88,9 @@ func main() {
 		bot.WithCallbackQueryDataHandler(data.CreateKeyRequest, bot.MatchTypeExact, vpnHandlers.RegionHandler.GetRegionsInline),                                                // first - get request for create key -> send to get the region
 		bot.WithCallbackQueryDataHandler(data.RegionChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetRegionSendProvider(vpnHandlers.ProviderHandler.GetProvidersInline)), // get region, send a request of the Provider
 		bot.WithCallbackQueryDataHandler(data.ProviderChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetProviderSendTime(vpnHandlerBot.KeyboardTimeChoose)),               // get provider, send a request of the time
-		bot.WithCallbackQueryDataHandler(data.TimeChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetTimeToCreateKey(vpnHandlers.KeyHandler.CreateKey)),
+		bot.WithCallbackQueryDataHandler(data.TimeChoose, bot.MatchTypePrefix, vpnHandlers.KeyHandler.GetTimeToCreateKey(vpnHandlers.KeyHandler.CreateKeyIfNotExists)),
 
-		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnHandlers.KeyHandler.ExtendKeyIntline),
+		bot.WithCallbackQueryDataHandler(data.ExtendKey, bot.MatchTypePrefix, vpnHandlers.KeyHandler.ExtendKeyInline),
 
 		bot.WithCallbackQueryDataHandler(data.InfoAboutProject, bot.MatchTypeExact, vpnHandlerBot.InfoAboutInline),
 		bot.WithCallbackQueryDataHandler(data.OutlineHelp, bot.MatchTypeExact, vpnHandlerBot.HelpOutlineIntructionInline),
@@ -122,8 +117,13 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountHandlers.WalletHandler.GetBalace)
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PRICES, bot.MatchTypeExact, accountHandlers.GoodsHandler.GetPrices)
 
-	keyScheduler := scheduler.NewScheduler(time.Minute*5, b, vpnServices.KeyService)
-	keyScheduler.Run(ctx)
+	var schedulers [2]scheduler.Scheduler
+	schedulers[0] = scheduler.NewKeyScheduler(time.Minute*5, b, vpnServices.KeyService)
+	schedulers[1] = scheduler.NewBalanceScheduler(b, accountServices.OperationService, accountServices.UserService)
+
+	for _, s := range schedulers {
+		s.Run(ctx)
+	}
 
 	b.Start(ctx)
 }
