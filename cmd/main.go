@@ -118,7 +118,7 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PRICES, bot.MatchTypeExact, accountHandlers.GoodsHandler.GetPrices)
 
 	var schedulers [2]scheduler.Scheduler
-	schedulers[0] = scheduler.NewKeyScheduler(time.Minute*5, b, vpnServices.KeyService)
+	schedulers[0] = scheduler.NewKeyScheduler(time.Minute*2, b, vpnServices.KeyService)
 	schedulers[1] = scheduler.NewBalanceScheduler(b, accountServices.OperationService, accountServices.UserService)
 
 	for _, s := range schedulers {
