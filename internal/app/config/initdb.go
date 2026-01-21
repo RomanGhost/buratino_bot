@@ -13,7 +13,7 @@ func InitializeDatabase(buildDSN func() string, initDB func(*gorm.DB) error) (*g
 	dsn := buildDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 
 	if err != nil {
