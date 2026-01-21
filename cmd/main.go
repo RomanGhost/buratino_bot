@@ -9,11 +9,11 @@ import (
 
 	"github.com/RomanGhost/buratino_bot.git/internal/account"
 	accountHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/account/handler/bot"
+	"github.com/RomanGhost/buratino_bot.git/internal/scheduler"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/handler"
 	"github.com/RomanGhost/buratino_bot.git/internal/vpn"
 	vpnHandlerBot "github.com/RomanGhost/buratino_bot.git/internal/vpn/handler/bot"
-	"github.com/RomanGhost/buratino_bot.git/internal/vpn/scheduler"
 	"github.com/go-telegram/bot"
 	"github.com/joho/godotenv"
 )
@@ -118,7 +118,7 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PRICES, bot.MatchTypeExact, accountHandlers.GoodsHandler.GetPrices)
 
 	var schedulers [2]scheduler.Scheduler
-	schedulers[0] = scheduler.NewKeyScheduler(time.Minute*2, b, vpnServices.KeyService)
+	schedulers[0] = scheduler.NewKeyScheduler(time.Minute*5, b, vpnServices.KeyService)
 	schedulers[1] = scheduler.NewBalanceScheduler(b, accountServices.OperationService, accountServices.UserService)
 
 	for _, s := range schedulers {

@@ -57,6 +57,7 @@ func (s *KeyScheduler) Run(ctx context.Context) {
 }
 
 func (s *KeyScheduler) notifyExpired(ctx context.Context) {
+	// Получить истекут в промежуток шедулера
 	keysExpiringSoon, err := s.keyService.GetExpiringSoon(s.timeInterval * 2)
 	if err != nil || len(keysExpiringSoon) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)

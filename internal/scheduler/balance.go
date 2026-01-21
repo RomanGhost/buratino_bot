@@ -62,6 +62,10 @@ func (s *BalanceScheduler) Run(ctx context.Context) {
 	}()
 }
 
+func (s *BalanceScheduler) TestSafeRun() {
+	s.safeRun()
+}
+
 func (s *BalanceScheduler) safeRun() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -69,7 +73,6 @@ func (s *BalanceScheduler) safeRun() {
 		}
 	}()
 
-	log.Println("[INFO] Check keys into db")
 	s.topUpForUsers()
 }
 
@@ -79,7 +82,8 @@ func (s *BalanceScheduler) topUpForUsers() {
 		log.Println("[ERROR] Can't get users from database, error: ", err)
 	}
 
-	price, err := s.operationService.GetPrice(model.VPN1Day.Name, 30)
+	price, err := s.operationService.GetPrice(model.VPN1Min.SysName, 30)
+	log.Println("[DEBUG] Count price:", price)
 	if err != nil {
 		log.Println("[ERROR] Can't get price from database, error: ", err)
 	}

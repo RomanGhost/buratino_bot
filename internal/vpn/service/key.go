@@ -153,19 +153,15 @@ func (s *KeyService) ExtendKeyByIDWithUpdate(keyID uint, timeDuration time.Durat
 		return nil, fmt.Errorf("error get key by ID: %v", keyID)
 	}
 
-	activateKeyError := s.keyRepository.ActivateKey(key.ID)
-	if activateKeyError != nil {
-		return nil, fmt.Errorf("error activate key: %v", activateKeyError)
-	}
-
 	newDeadlineDateTime := time.Now().UTC().Truncate(time.Minute).Add(timeDuration)
-	// Если ключ имеет дату конца жизни позже чем сегодня, то не изменять его
-	if key.DeadlineTime.After(newDeadlineDateTime) {
-		return key, nil
-	}
+	// // Если ключ имеет дату конца жизни позже чем новый, то не изменять его
+	// if key.DeadlineTime.After(newDeadlineDateTime) {
+	// 	return key, nil
+	// }
 
 	key.Duration = timeDuration
-	key.DeadlineTime = time.Now().UTC().Truncate(time.Minute).Add(timeDuration)
+	key.DeadlineTime = newDeadlineDateTime
+	key.IsActive = true
 
 	updateKeyError := s.keyRepository.Update(key)
 	if updateKeyError != nil {

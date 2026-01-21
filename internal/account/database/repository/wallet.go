@@ -25,7 +25,7 @@ func (r *WalletRepository) FindByID(id uint) (*model.Wallet, error) {
 
 func (r *WalletRepository) FindByUserID(userID uint) (*model.Wallet, error) {
 	var wallet model.Wallet
-	err := r.db.Preload("History").First(&wallet, "user_id = ?", userID).Error
+	err := r.db.First(&wallet, "user_id = ?", userID).Error
 	return &wallet, err
 }
 
