@@ -115,9 +115,9 @@ func (h *KeyHandler) CreateKeyIfNotExists(ctx context.Context, b *bot.Bot, updat
 		errorServer(ctx, b, chatID)
 		return
 	}
-
+ log.Printf("%+v", keys)
 	for _, key := range keys {
-  log.Println("[DEBUG] Key info, and server info:", key, server)
+  log.Printf("[DEBUG] Key info: %+v, and server: %+v\n", key, server)
 		if !key.IsActive && key.ServerID == server.ID {
 			h.createOrExtendKey(ctx, b, update, &key)
 			return
