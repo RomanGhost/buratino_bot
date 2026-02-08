@@ -40,6 +40,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, b *bot.Bot, update *mode
 	if err != nil {
 		log.Printf("Error get wallet by userID: %d", user.ID)
 		function.UnknownUser(ctx, b, update.Message.Chat.ID)
+		return
 	}
 
 	_, sendMessageError := b.SendMessage(ctx, &bot.SendMessageParams{
@@ -96,11 +97,14 @@ func (h *WalletHandler) PaymentHandler(ctx context.Context, b *bot.Bot, update *
 	if update.PreCheckoutQuery != nil {
 		log.Printf("[DEBUG] get PreCheckoutQuery for invoce payload: %s\n", update.PreCheckoutQuery.InvoicePayload)
 
-		b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
+		_, err := b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
 			PreCheckoutQueryID: update.PreCheckoutQuery.ID,
 			OK:                 true,
 			ErrorMessage:       "",
 		})
+		if err != nil {
+			return
+		}
 		return
 	}
 

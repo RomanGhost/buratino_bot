@@ -192,9 +192,9 @@ func (c *WgEasyClient) GetConfigurationClientById(id int) (string, error) {
 		return "", fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
-	data, _ := io.ReadAll(resp.Body)
+	bodyData, _ := io.ReadAll(resp.Body)
 
-	return string(data), nil
+	return string(bodyData), nil
 
 }
 

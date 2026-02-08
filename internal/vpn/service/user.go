@@ -34,7 +34,7 @@ func (s *UserService) AddNewUser(telegramID int64, authUserID uint) error {
 		TelegramID: telegramID,
 		AuthID:     authUserID,
 	}
-	s.userRepository.Create(&newUser)
+	_ = s.userRepository.Create(&newUser)
 
 	return nil
 }

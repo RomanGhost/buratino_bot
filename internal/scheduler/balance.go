@@ -85,7 +85,7 @@ func (s *BalanceScheduler) topUpForUsers() {
 	}
 
 	for _, user := range users {
-		s.operationService.TopUpAccount(user.ID, uint64(price/1000), uint64(price%1000))
+		_, _ = s.operationService.TopUpAccount(user.ID, uint64(price/1000), uint64(price%1000))
 	}
 }
 

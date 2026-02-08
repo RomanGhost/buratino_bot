@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	accountModel "github.com/RomanGhost/buratino_bot.git/internal/account/database/model"
 	"github.com/RomanGhost/buratino_bot.git/internal/app/timework"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/data"
 	"github.com/RomanGhost/buratino_bot.git/internal/telegram/function"
@@ -252,25 +253,25 @@ func (h *KeyHandler) makeRequest(telegramID int64, timeDuration time.Duration) t
 	concDuration := timework.ConcrateDuration(timeDuration)
 	var resDuration time.Duration
 
-	_, minError := h.accountOperationService.CreateOperation(user.AuthID, VPN1Min, uint64(concDuration.Minutes))
+	_, minError := h.accountOperationService.CreateOperation(user.AuthID, accountModel.VPN1Min.SysName, uint64(concDuration.Minutes))
 	if minError != nil {
 		return 0
 	}
 	resDuration += time.Duration(concDuration.Minutes) * time.Minute
 
-	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, VPN1Hour, uint64(concDuration.Hours))
+	_, hourError := h.accountOperationService.CreateOperation(user.AuthID, accountModel.VPN1Hour.SysName, uint64(concDuration.Hours))
 	if hourError != nil {
 		return resDuration
 	}
 	resDuration += time.Duration(concDuration.Hours) * time.Hour
 
-	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, VPN1Day, uint64(concDuration.Days))
+	_, dayError := h.accountOperationService.CreateOperation(user.AuthID, accountModel.VPN1Day.SysName, uint64(concDuration.Days))
 	if dayError != nil {
 		return resDuration
 	}
 	resDuration += time.Duration(concDuration.Days) * timework.DayDuration
 
-	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, VPN1Month, uint64(concDuration.Months))
+	_, monthError := h.accountOperationService.CreateOperation(user.AuthID, accountModel.VPN1Month.SysName, uint64(concDuration.Months))
 	if monthError != nil {
 		return resDuration
 	}
@@ -284,25 +285,25 @@ func (h *KeyHandler) countPrice(timeDuration time.Duration) int64 {
 	var resPrice int64
 	cd := timework.ConcrateDuration(timeDuration)
 
-	minPrice, minError := h.accountOperationService.GetPrice(VPN1Min, uint64(cd.Minutes))
+	minPrice, minError := h.accountOperationService.GetPrice(accountModel.VPN1Min.SysName, uint64(cd.Minutes))
 	if minError != nil {
 		return 0
 	}
 	resPrice += minPrice
 
-	hourPrice, hourError := h.accountOperationService.GetPrice(VPN1Hour, uint64(cd.Hours))
+	hourPrice, hourError := h.accountOperationService.GetPrice(accountModel.VPN1Hour.SysName, uint64(cd.Hours))
 	if hourError != nil {
 		return resPrice
 	}
 	resPrice += hourPrice
 
-	dayPrice, dayError := h.accountOperationService.GetPrice(VPN1Day, uint64(cd.Days))
+	dayPrice, dayError := h.accountOperationService.GetPrice(accountModel.VPN1Day.SysName, uint64(cd.Days))
 	if dayError != nil {
 		return resPrice
 	}
 	resPrice += dayPrice
 
-	monthPrice, monthError := h.accountOperationService.GetPrice(VPN1Month, uint64(cd.Months))
+	monthPrice, monthError := h.accountOperationService.GetPrice(accountModel.VPN1Month.SysName, uint64(cd.Months))
 	if monthError != nil {
 		return resPrice
 	}
@@ -336,7 +337,9 @@ func sendKeyWireguard(ctx context.Context, b *bot.Bot, update *models.Update, ke
 		return
 	}
 	// defer os.Remove(tmpFile.Name()) // удаляем после использования
-	defer tempFile.Close()
+	defer func(tempFile *os.File) {
+		_ = tempFile.Close()
+	}(tempFile)
 
 	_, err = tempFile.WriteString(keyData.ConnectUrl)
 	if err != nil {

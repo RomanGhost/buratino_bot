@@ -16,14 +16,6 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-const (
-	VPN1Min   = "1m vpn"
-	VPN1Hour  = "1h vpn"
-	VPN1Day   = "1d vpn"
-	VPN1Month = "1month vpn"
-	TopUP     = "topUP"
-)
-
 type KeyHandler struct {
 	userService             *service.UserService
 	keyService              *service.KeyService
@@ -76,6 +68,7 @@ func (h *KeyHandler) ExtendKeyInline(ctx context.Context, b *bot.Bot, update *mo
 	keyVal, err := h.keyService.GetByID(keyIDUint)
 	if err != nil {
 		errorMissKey(ctx, b, update.CallbackQuery.Message.Message.Chat.ID)
+		return
 	}
 
 	resultDuration := h.makeRequest(telegramUser.ID, keyVal.Duration)

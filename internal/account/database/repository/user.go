@@ -23,9 +23,9 @@ func (r *UserRepository) GetUsers() ([]model.User, error) {
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
-		} else {
-			return nil, err
 		}
+
+		return nil, err
 	}
 	return users, nil
 

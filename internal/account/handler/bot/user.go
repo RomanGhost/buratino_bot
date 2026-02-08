@@ -41,7 +41,7 @@ func (h *UserHandler) lookupUserChange(update *models.Update) {
 		if err != nil {
 			log.Printf("[WARN] user register error: %v", err)
 		} else {
-			h.userVPNService.AddNewUser(telegramUser.ID, user.ID)
+			_ = h.userVPNService.AddNewUser(telegramUser.ID, user.ID)
 		}
 	}
 }

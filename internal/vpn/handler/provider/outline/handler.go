@@ -91,7 +91,9 @@ func (c *OutlineClient) GetAccessKeys() ([]data.AccessKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -113,7 +115,9 @@ func (c *OutlineClient) CreateAccessKey() (*data.AccessKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -134,7 +138,9 @@ func (c *OutlineClient) DeleteAccessKey(keyID int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -173,7 +179,9 @@ func (c *OutlineClient) RenameAccessKey(keyID int, name string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
