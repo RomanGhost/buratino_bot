@@ -27,7 +27,7 @@ func NewWalletHandler(walletService *service.WalletService, operationService *se
 	}
 }
 
-func (h *WalletHandler) GetBalace(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *WalletHandler) GetBalance(ctx context.Context, b *bot.Bot, update *models.Update) {
 	telegramUser := update.Message.From
 	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
 	if err != nil {

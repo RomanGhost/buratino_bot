@@ -66,3 +66,12 @@ func (s *WalletService) Sub(walletID uint, amount int64) error {
 
 	return nil
 }
+
+func (s *WalletService) GetBalance(userID uint) (int64, error) {
+	w, err := s.walletRepository.FindByUserID(userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return w.MoneyCount, nil
+}

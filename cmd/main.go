@@ -36,7 +36,7 @@ func createCacheDir() {
 
 func initHandlerVPN(s *vpn.Services, as *account.Services) *vpn.Handlers {
 	regionHandler := vpnHandlerBot.NewRegionHandler(s.RegionService)
-	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService)
+	keyHandler := vpnHandlerBot.NewKeyHandler(s.UserService, s.KeyService, s.ServerService, as.OperationService, as.WalletService)
 	provider := vpnHandlerBot.NewProviderHandler(s.ProviderService)
 
 	return &vpn.Handlers{
@@ -114,7 +114,7 @@ func main() {
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.START, bot.MatchTypeExact, accountHandlers.UserHandler.RegisterUser)
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PAY, bot.MatchTypePrefix, accountHandlers.WalletHandler.PayAmount)
-	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountHandlers.WalletHandler.GetBalace)
+	b.RegisterHandler(bot.HandlerTypeMessageText, data.BALANCE, bot.MatchTypeExact, accountHandlers.WalletHandler.GetBalance)
 	b.RegisterHandler(bot.HandlerTypeMessageText, data.PRICES, bot.MatchTypeExact, accountHandlers.GoodsHandler.GetPrices)
 
 	var schedulers [2]scheduler.Scheduler

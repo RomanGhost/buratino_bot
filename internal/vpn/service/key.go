@@ -87,8 +87,8 @@ func (s *KeyService) CountKeysOfServer(serverID uint) int {
 	return len(key)
 }
 
-func (s *KeyService) Delete(keyID uint) {
-	s.keyRepository.Delete(keyID)
+func (s *KeyService) Delete(keyID uint) error {
+	return s.keyRepository.Delete(keyID)
 }
 
 func (s *KeyService) DeactivateKey(keyID uint) error {

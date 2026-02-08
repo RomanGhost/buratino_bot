@@ -195,9 +195,11 @@ func (c *OutlineClient) SetDataLimit(keyID int, limitBytes int64) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 399 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -216,7 +218,9 @@ func (c *OutlineClient) RemoveDataLimit(keyID int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -231,7 +235,9 @@ func (c *OutlineClient) GetServerInfo() (*ServerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -251,7 +257,9 @@ func (c *OutlineClient) GetDataUsage() (map[string]int64, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)

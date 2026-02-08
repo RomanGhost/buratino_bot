@@ -6,7 +6,7 @@ import (
 	"github.com/go-telegram/bot"
 )
 
-type BotSheduler struct {
+type BotScheduler struct {
 	timeInterval time.Duration
 	b            *bot.Bot
 }

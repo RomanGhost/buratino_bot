@@ -13,14 +13,14 @@ import (
 const timeInterval = 12 * time.Hour
 
 type BalanceScheduler struct {
-	BotSheduler
+	BotScheduler
 	operationService *service.OperationService
 	userService      *service.UserService
 }
 
 func NewBalanceScheduler(b *bot.Bot, operationService *service.OperationService, userService *service.UserService) *BalanceScheduler {
 	return &BalanceScheduler{
-		BotSheduler:      BotSheduler{timeInterval, b},
+		BotScheduler:     BotScheduler{timeInterval, b},
 		operationService: operationService,
 		userService:      userService,
 	}
@@ -60,10 +60,6 @@ func (s *BalanceScheduler) Run(ctx context.Context) {
 			}
 		}
 	}()
-}
-
-func (s *BalanceScheduler) TestSafeRun() {
-	s.safeRun()
 }
 
 func (s *BalanceScheduler) safeRun() {

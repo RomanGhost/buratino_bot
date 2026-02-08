@@ -164,6 +164,25 @@ func (h *KeyHandler) createOrExtendKey(
 		return
 	}
 
+	// TODO перенести в кеш - нагрузка на БД
+	user, err := h.userService.GetUserByTelegramID(telegramUser.ID)
+	if err != nil {
+		return
+	}
+
+	// получение цены
+	totalPrice := h.countPrice(val.DeadlineDuration)
+	userBalance, err := h.walletService.GetBalance(user.AuthID)
+	if err != nil {
+		errorServer(ctx, b, chatID)
+		return
+	}
+
+	if totalPrice > userBalance {
+		function.BalanceOverAddInfo(ctx, b, chatID, userBalance, totalPrice)
+		return
+	}
+
 	// расчет стоимости за время жизни ключа
 	resultDuration := h.makeRequest(telegramUser.ID, val.DeadlineDuration)
 	if resultDuration == 0 {

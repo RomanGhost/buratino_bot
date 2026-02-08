@@ -29,10 +29,17 @@ type KeyHandler struct {
 	keyService              *service.KeyService
 	serverService           *service.ServerService
 	accountOperationService *accountService.OperationService
+	walletService           *accountService.WalletService
 	keyCreatorInfo          map[int64]keyInfo
 }
 
-func NewKeyHandler(userService *service.UserService, keyService *service.KeyService, serverService *service.ServerService, accountOperationService *accountService.OperationService) *KeyHandler {
+func NewKeyHandler(
+	userService *service.UserService,
+	keyService *service.KeyService,
+	serverService *service.ServerService,
+	accountOperationService *accountService.OperationService,
+	walletService *accountService.WalletService,
+) *KeyHandler {
 	keyCreatorInfo := make(map[int64]keyInfo)
 	return &KeyHandler{
 		userService:             userService,
@@ -40,6 +47,7 @@ func NewKeyHandler(userService *service.UserService, keyService *service.KeyServ
 		serverService:           serverService,
 		accountOperationService: accountOperationService,
 		keyCreatorInfo:          keyCreatorInfo,
+		walletService:           walletService,
 	}
 }
 

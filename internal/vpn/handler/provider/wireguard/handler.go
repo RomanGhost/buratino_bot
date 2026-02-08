@@ -99,7 +99,9 @@ func (c *WgEasyClient) GetClients() ([]Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
@@ -137,9 +139,11 @@ func (c *WgEasyClient) CreateClient(name string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -180,9 +184,11 @@ func (c *WgEasyClient) GetConfigurationClientById(id int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return "", fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -199,9 +205,11 @@ func (c *WgEasyClient) DeleteAccessKey(keyID int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 
@@ -216,9 +224,11 @@ func (c *WgEasyClient) DisableKey(keyID int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
-	if resp.StatusCode < 200 && resp.StatusCode > 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return fmt.Errorf("неожиданный статус код: %d", resp.StatusCode)
 	}
 

@@ -13,14 +13,14 @@ import (
 )
 
 type KeyScheduler struct {
-	BotSheduler
+	BotScheduler
 	keyService *service.KeyService
 }
 
 func NewKeyScheduler(duration time.Duration, b *bot.Bot, keyService *service.KeyService) *KeyScheduler {
 	return &KeyScheduler{
-		BotSheduler: BotSheduler{duration, b},
-		keyService:  keyService,
+		BotScheduler: BotScheduler{duration, b},
+		keyService:   keyService,
 	}
 }
 
@@ -47,7 +47,7 @@ func (s *KeyScheduler) Run(ctx context.Context) {
 
 				go func() {
 					defer wg.Done()
-					s.diactivateExpiredKeys(ctx)
+					s.deactivateExpiredKeys(ctx)
 				}()
 
 				wg.Wait()
@@ -122,7 +122,7 @@ func (s *KeyScheduler) notify(ctx context.Context, timersData map[time.Duration]
 	wg.Wait()
 }
 
-func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
+func (s *KeyScheduler) deactivateExpiredKeys(ctx context.Context) {
 	keysExpired, err := s.keyService.GetExpiredKeys()
 	if err != nil || len(keysExpired) == 0 {
 		log.Printf("[WARN] Can't get keys: %v\n", err)
@@ -138,20 +138,22 @@ func (s *KeyScheduler) diactivateExpiredKeys(ctx context.Context) {
 			// TODO edit to change url
 			providerClient := provider.NewProvider(key.Server.Access, key.Server.ProviderID)
 
-			// errOutline := providerClient.DeleteAccessKey(key.KeyID)
+			// errOutline := providerClient.DeleteAccessKey
+			// deactivate into vpn provider
 			errOutline := providerClient.DisableKey(key.KeyID)
 			if errOutline != nil {
-				log.Printf("[ERROR] Can't delete key #%v, err: %v", key.ID, errOutline)
-				s.keyService.Delete(key.ID)
+				log.Printf("[ERROR] Can't deactivate key #%v, err: %v", key.ID, errOutline)
+				_ = s.keyService.Delete(key.ID)
 				continue
 			}
 
+			// deactivate in db
 			err := s.keyService.DeactivateKey(key.ID)
 			if err != nil {
-				log.Printf("[ERROR] Can't diactivate key #%v", key.ID)
+				log.Printf("[ERROR] Can't deactivate key #%v", key.ID)
+				_ = s.keyService.Delete(key.ID)
 				continue
 			}
-			s.keyService.Delete(key.ID)
 		}
 	}
 
